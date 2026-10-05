@@ -1,0 +1,66 @@
+{
+ "order": [
+  "long",
+  "wavy",
+  "curls",
+  "bob",
+  "pixie",
+  "ponytail",
+  "twintails",
+  "braids",
+  "bun",
+  "afro"
+ ],
+ "styles": {
+  "long": {
+   "label": "Long and straight",
+   "hat": true,
+   "tris": 13972
+  },
+  "wavy": {
+   "label": "Long waves",
+   "hat": true,
+   "tris": 13972
+  },
+  "curls": {
+   "label": "Curls",
+   "hat": true,
+   "tris": 10174
+  },
+  "bob": {
+   "label": "Bob",
+   "hat": true,
+   "tris": 10050
+  },
+  "pixie": {
+   "label": "Short crop",
+   "hat": true,
+   "tris": 6668
+  },
+  "ponytail": {
+   "label": "Ponytail",
+   "hat": true,
+   "tris": 8478
+  },
+  "twintails": {
+   "label": "Twin tails",
+   "hat": true,
+   "tris": 11004
+  },
+  "braids": {
+   "label": "Braids",
+   "hat": true,
+   "tris": 14456
+  },
+  "bun": {
+   "label": "Bun",
+   "hat": true,
+   "tris": 4260
+  },
+  "afro": {
+   "label": "Afro",
+   "hat": false,
+   "tris": 10688
+  }
+ }
+}

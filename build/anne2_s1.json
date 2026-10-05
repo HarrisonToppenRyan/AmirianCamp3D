@@ -1,0 +1,606 @@
+{
+ "height": 1.7,
+ "head_top_z": 1.7,
+ "chin_z": 1.46367,
+ "head_height": 0.23633,
+ "eye_centre_L": [
+  0.03644,
+  -0.11004,
+  1.57892
+ ],
+ "eye_centre_R": [
+  -0.03644,
+  -0.11004,
+  1.57892
+ ],
+ "eye_radius": 0.02295,
+ "neck_base_z": 1.42677,
+ "shoulder_z": 1.34435,
+ "shoulder_x": 0.1314,
+ "crotch_z": 0.88008,
+ "knee_z": 0.54311,
+ "ankle_z": 0.06468,
+ "foot_length": 0.2144,
+ "heel_y": 0.02101,
+ "toe_y": -0.19339,
+ "foot_width": 0.07531,
+ "ratios": {
+  "height": 1.7,
+  "head_height": 0.23633,
+  "head_ratio": 7.19332,
+  "head_width": 0.16308,
+  "head_depth": 0.23958,
+  "head_w_over_h": 0.69004,
+  "crotch_z": 0.88008,
+  "crotch_ratio": 0.51769,
+  "eye_line_from_chin": 0.4766,
+  "eye_width": 0.03674,
+  "eye_height": 0.01285,
+  "eye_h_over_w": 0.34988,
+  "face_width_at_eyes": 0.16251,
+  "eye_w_over_face_w": 0.22605,
+  "inner_gap_over_eye_w": 0.99107,
+  "nose_tip_from_chin": 0.33556,
+  "subnasale_from_chin": 0.25314,
+  "mouth_from_chin": 0.2029,
+  "mouth_w": 0.04922,
+  "mouth_w_over_eye_w": 1.33987,
+  "cheek_w_over_face_w": 0.87145,
+  "jaw_w_over_face_w": 0.72003,
+  "prof_nasion": 0.00491,
+  "prof_nose_tip": -0.02521,
+  "prof_subnasale": 0.00878,
+  "prof_lip_up": 0.00035,
+  "prof_lip_low": 0.0063,
+  "prof_chin": 0.00629,
+  "prof_forehead": 0.0031,
+  "neck_width": 0.08831,
+  "neck_w_over_head_w": 0.54153,
+  "shoulder_z": 1.34435,
+  "shoulder_joint_width": 0.26279,
+  "shoulder_w_over_head_w": 1.61147,
+  "waist_w": 0.25079,
+  "hip_w": 0.34745,
+  "foot_length": 0.2144,
+  "foot_width": 0.07531,
+  "foot_ratio": 0.12612
+ },
+ "macro": {
+  "gender": 0.0,
+  "age": 0.5,
+  "muscle": 0.35,
+  "weight": 0.46,
+  "proportions": 1.0,
+  "height": 0.5,
+  "cupsize": 0.72,
+  "firmness": 0.75,
+  "race": {
+   "asian": 0.0,
+   "caucasian": 1.0,
+   "african": 0.0
+  }
+ },
+ "targets": [
+  [
+   "head/head-oval",
+   0.5
+  ],
+  [
+   "head/head-invertedtriangular",
+   0.45
+  ],
+  [
+   "head/head-age-decr",
+   0.1
+  ],
+  [
+   "forehead/forehead-scale-vert-decr",
+   0.4
+  ],
+  [
+   "cheek/l-cheek-volume-decr",
+   0.35
+  ],
+  [
+   "cheek/r-cheek-volume-decr",
+   0.35
+  ],
+  [
+   "cheek/l-cheek-bones-incr",
+   0.35
+  ],
+  [
+   "cheek/r-cheek-bones-incr",
+   0.35
+  ],
+  [
+   "chin/chin-width-decr",
+   0.95
+  ],
+  [
+   "chin/chin-height-decr",
+   0.12
+  ],
+  [
+   "chin/chin-bones-decr",
+   0.6
+  ],
+  [
+   "chin/chin-triangle",
+   0.3
+  ],
+  [
+   "chin/chin-prominent-incr",
+   0.1
+  ],
+  [
+   "nose/nose-scale-horiz-decr",
+   0.7
+  ],
+  [
+   "nose/nose-volume-decr",
+   0.4
+  ],
+  [
+   "nose/nose-point-width-decr",
+   0.45
+  ],
+  [
+   "nose/nose-scale-vert-decr",
+   0.35
+  ],
+  [
+   "nose/nose-trans-down",
+   0.35
+  ],
+  [
+   "nose/nose-point-down",
+   0.2
+  ],
+  [
+   "nose/nose-base-down",
+   0.7
+  ],
+  [
+   "nose/nose-septumangle-decr",
+   0.4
+  ],
+  [
+   "nose/nose-nostrils-angle-down",
+   0.3
+  ],
+  [
+   "nose/nose-curve-concave",
+   0.25
+  ],
+  [
+   "nose/nose-nostrils-width-decr",
+   1.0
+  ],
+  [
+   "nose/nose-hump-decr",
+   0.5
+  ],
+  [
+   "nose/nose-flaring-decr",
+   1.0
+  ],
+  [
+   "mouth/mouth-lowerlip-volume-incr",
+   0.15
+  ],
+  [
+   "mouth/mouth-scale-depth-decr",
+   0.6
+  ],
+  [
+   "mouth/mouth-angles-up",
+   0.6
+  ],
+  [
+   "mouth/mouth-trans-up",
+   0.15
+  ],
+  [
+   "mouth/mouth-trans-backward",
+   0.8
+  ],
+  [
+   "eyes/l-eye-bag-decr",
+   1.0
+  ],
+  [
+   "eyes/r-eye-bag-decr",
+   1.0
+  ],
+  [
+   "ears/l-ear-scale-decr",
+   0.5
+  ],
+  [
+   "ears/r-ear-scale-decr",
+   0.5
+  ],
+  [
+   "neck/neck-scale-horiz-decr",
+   0.4
+  ],
+  [
+   "neck/neck-scale-depth-decr",
+   0.4
+  ],
+  [
+   "breast/breast-point-decr",
+   1.0
+  ],
+  [
+   "breast/nipple-point-decr",
+   1.0
+  ],
+  [
+   "breast/nipple-size-decr",
+   1.0
+  ],
+  [
+   "torso/measure-waist-circ-decr",
+   0.85
+  ],
+  [
+   "torso/measure-shoulder-dist-decr",
+   0.5
+  ],
+  [
+   "torso/measure-hips-circ-incr",
+   0.35
+  ],
+  [
+   "torso/measure-bust-circ-incr",
+   0.3
+  ],
+  [
+   "torso/measure-underbust-circ-decr",
+   0.5
+  ],
+  [
+   "torso/torso-vshape-decr",
+   0.4
+  ],
+  [
+   "arms/l-upperarm-fat-decr",
+   0.28
+  ],
+  [
+   "arms/r-upperarm-fat-decr",
+   0.28
+  ],
+  [
+   "arms/l-lowerarm-fat-decr",
+   0.4
+  ],
+  [
+   "arms/r-lowerarm-fat-decr",
+   0.4
+  ],
+  [
+   "arms/l-upperarm-muscle-decr",
+   0.5
+  ],
+  [
+   "arms/r-upperarm-muscle-decr",
+   0.5
+  ],
+  [
+   "arms/l-lowerarm-muscle-decr",
+   0.5
+  ],
+  [
+   "arms/r-lowerarm-muscle-decr",
+   0.5
+  ],
+  [
+   "legs/l-lowerleg-muscle-decr",
+   0.3
+  ],
+  [
+   "legs/r-lowerleg-muscle-decr",
+   0.3
+  ],
+  [
+   "legs/l-upperleg-muscle-decr",
+   0.18
+  ],
+  [
+   "legs/r-upperleg-muscle-decr",
+   0.18
+  ],
+  [
+   "legs/l-upperleg-fat-incr",
+   0.5
+  ],
+  [
+   "legs/r-upperleg-fat-incr",
+   0.5
+  ],
+  [
+   "feet/l-foot-scale-horiz-decr",
+   0.4
+  ],
+  [
+   "feet/r-foot-scale-horiz-decr",
+   0.4
+  ],
+  [
+   "feet/measure-ankle-circ-decr",
+   0.32
+  ]
+ ],
+ "params": {
+  "LEGS_IN": 0.012,
+  "HEIGHT": 1.7,
+  "HEAD_RATIO": 0.13889,
+  "CROTCH_RATIO": 0.51,
+  "FOOT_RATIO": 0.126,
+  "FOOT_WIDE": 0.5,
+  "FOOT_HIGH": 0.35,
+  "TOE_LEN": [
+   0.76,
+   0.59,
+   0.59,
+   0.61,
+   0.65
+  ],
+  "TOE_FAT": [
+   1.03,
+   1.08,
+   1.08,
+   1.08,
+   1.08
+  ],
+  "TOE_THICK": [
+   1.05,
+   1.14,
+   1.14,
+   1.14,
+   1.12
+  ],
+  "HEAD_XYZ": [
+   0.91,
+   1.0,
+   1.0
+  ],
+  "IRIS_FRAC": 0.52,
+  "PUPIL_FRAC": 0.46,
+  "LID_COVER": 0.3,
+  "LID_LOW_GAP": -0.08,
+  "LID_OUT_UP": 9.0,
+  "LID_IN_UP": -1.5,
+  "LID_REACH_UP": 42.0,
+  "LID_REACH_LOW": 36.0,
+  "EYE_SCALE": 1.34,
+  "EYE_T0": [
+   0.95,
+   0.62
+  ],
+  "EYE_T1": [
+   1.95,
+   3.2,
+   1.7,
+   2.0
+  ],
+  "EYE_BLEND": 0.45,
+  "EYE_DEPTH_SCALE": 1.42,
+  "EYE_R2_K": 1.0,
+  "LID_THICK": 0.4,
+  "LID_RIM": 0.5,
+  "EYE_DEPTH0": 2.2,
+  "EYE_DEPTH1": 4.5,
+  "EYE_BROW_FLAT": 0.3,
+  "EYE_OUT": 0.0055,
+  "EYE_DOWN": 0.002,
+  "EYE_BACK": 0.003,
+  "EYE_BALL_K": 0.985,
+  "EYE_CONVERGE_DEG": 2.0,
+  "EYE_CAP_DEG": 75.0,
+  "SMOOTH_FACE": 0.6,
+  "SMOOTH_FACE_IT": 40,
+  "SMOOTH_BODY": 0.3,
+  "ARMHOLE_TOP_IN": 0.04,
+  "ARMHOLE_PIT_IN": 0.034,
+  "ARMHOLE_PIT_DOWN": 0.08,
+  "CHOKER_T": [
+   0.3,
+   0.66
+  ],
+  "NECKLINE_T": 0.2,
+  "HEM_BELOW_CROTCH": 0.065,
+  "LIP_OVERLAP": 0.0003,
+  "LIP_THIN": [
+   0.5,
+   0.68
+  ],
+  "LIP_WIDE": 0.93,
+  "SKIN": "#fde9e3",
+  "BLUSH": "#f0a6a0",
+  "LIP": "#d95a82",
+  "SOCKET": "#eab4a8",
+  "LASH": "#2e1812",
+  "NAIL": "#5a2d91",
+  "SUIT": "#f2a516",
+  "GLOVE": "#5a2d91",
+  "MOUTH_IN": "#5a1a26",
+  "IRIS_DEG": 25.0802
+ },
+ "solved": {
+  "head_scale": 1.22964,
+  "leg_stretch": 1.24118,
+  "foot_scale": 1.19751,
+  "uniform": 0.93381
+ },
+ "landmarks": {
+  "crown": [
+   0.0,
+   -0.04177,
+   1.7
+  ],
+  "nasion": [
+   -0.00349,
+   -0.14769,
+   1.58671
+  ],
+  "nose_tip": [
+   0.0,
+   -0.17781,
+   1.54297
+  ],
+  "subnasale": [
+   -0.00352,
+   -0.14382,
+   1.52349
+  ],
+  "lip_top": [
+   0.0,
+   -0.15335,
+   1.51831
+  ],
+  "lip_up": [
+   0.0,
+   -0.15225,
+   1.51739
+  ],
+  "stomion": [
+   0.0,
+   -0.1458,
+   1.51162
+  ],
+  "lip_low": [
+   0.0,
+   -0.1463,
+   1.50911
+  ],
+  "lip_bottom": [
+   0.0,
+   -0.14288,
+   1.50343
+  ],
+  "chin": [
+   0.0,
+   -0.14631,
+   1.48004
+  ],
+  "menton": [
+   0.0,
+   -0.12867,
+   1.46367
+  ],
+  "neck_front": [
+   0.0,
+   -0.06162,
+   1.43757
+  ],
+  "nape": [
+   0.0,
+   0.02192,
+   1.51998
+  ],
+  "crotch": [
+   0.0,
+   -0.05242,
+   0.88008
+  ],
+  "mouth_corner_l": [
+   0.02461,
+   -0.12592,
+   1.51622
+  ],
+  "forehead": [
+   0.0,
+   -0.1495,
+   1.62978
+  ],
+  "glabella": [
+   0.0,
+   -0.1526,
+   1.61582
+  ]
+ },
+ "landmark_vertices": {
+  "crown": 881,
+  "nasion": 136,
+  "nose_tip": 5054,
+  "subnasale": 5072,
+  "lip_top": 362,
+  "lip_up": 455,
+  "stomion": 520,
+  "lip_low": 495,
+  "lip_bottom": 5337,
+  "chin": 5162,
+  "menton": 732,
+  "neck_front": 803,
+  "nape": 934,
+  "crotch": 4372,
+  "mouth_corner_l": 7302,
+  "forehead": 5320,
+  "glabella": 227
+ },
+ "eye_loop_L": [
+  6785,
+  6784,
+  6790,
+  6793,
+  6796,
+  6799,
+  6802,
+  6805,
+  6808,
+  6811,
+  11693,
+  6814,
+  6817,
+  6820,
+  6825,
+  6828,
+  6831,
+  6834,
+  11695,
+  6837,
+  6856,
+  6853,
+  6850,
+  6847,
+  6886,
+  6844,
+  6841,
+  6838
+ ],
+ "eye_loop_R": [
+  1,
+  0,
+  6,
+  9,
+  12,
+  15,
+  18,
+  21,
+  24,
+  27,
+  5078,
+  30,
+  33,
+  36,
+  41,
+  44,
+  47,
+  50,
+  5080,
+  53,
+  72,
+  69,
+  66,
+  63,
+  102,
+  60,
+  57,
+  54
+ ],
+ "eye_loop_note": "eyelid margin loop: index 0 = top centre, then outwards, outer corner at 7, bottom centre 15, inner corner 21"
+}

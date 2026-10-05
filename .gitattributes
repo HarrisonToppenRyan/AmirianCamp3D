@@ -1,0 +1,2 @@
+build/anne2_s3.blend filter=lfs diff=lfs merge=lfs -text
+build/anne2_s3.blend1 filter=lfs diff=lfs merge=lfs -text

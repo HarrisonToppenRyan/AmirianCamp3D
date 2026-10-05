@@ -1,0 +1,4 @@
+# What is not uploaded: the Finder's own files and Python's bytecode caches (both are made again by themselves).
+.DS_Store
+__pycache__/
+*.pyc

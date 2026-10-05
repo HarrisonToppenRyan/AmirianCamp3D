@@ -1,0 +1,9 @@
+<!doctype html><meta charset="utf-8"><title>read-back overhead probe</title><body style="margin:0"><script>
+// Measures the fixed cost of "clear + read one pixel back" so perf=2 numbers can be corrected for it.
+const qp = new URLSearchParams(location.search), aa = !qp.has('noaa');
+const c = document.createElement('canvas'); c.width = innerWidth * devicePixelRatio; c.height = innerHeight * devicePixelRatio; c.style.cssText = 'width:100vw;height:100vh'; document.body.appendChild(c);
+const gl = c.getContext('webgl2', { antialias: aa }); const px = new Uint8Array(4); let n = 0, sum = 0, max = 0;
+function f() { const t0 = performance.now(); gl.clearColor(Math.random(), 0.5, 0.5, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+  const d = performance.now() - t0; if (n >= 20) { sum += d; if (d > max) max = d; } if (++n < 200) requestAnimationFrame(f); else console.log('READBACK ' + JSON.stringify({ aa, size: [c.width, c.height], avgMs: +(sum / (n - 20)).toFixed(2), maxMs: +max.toFixed(1) })); }
+requestAnimationFrame(f);
+</script>

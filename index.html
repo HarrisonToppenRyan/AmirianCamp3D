@@ -1,0 +1,1023 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Forest Camp 3D</title>
+<link rel="icon" href="data:,">
+<style>
+  :root { --ink: #f4ecd8; --accent: #c9a24a; --purple: #4b2a73; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0d140c; font-family: Georgia, "Times New Roman", serif; color: var(--ink); }
+  canvas { display: block; }
+  #hud { position: fixed; left: 16px; bottom: 14px; font-size: 13px; line-height: 1.5; text-shadow: 0 1px 3px #000; pointer-events: none; opacity: .9; }
+  #hud b { color: var(--accent); }
+  #title { position: fixed; left: 16px; top: 12px; font-size: 18px; letter-spacing: .06em; text-shadow: 0 2px 6px #000; pointer-events: none; }
+  #title small { display: block; font-size: 12px; opacity: .75; letter-spacing: 0; }
+  #start { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+           background: radial-gradient(ellipse at center, rgba(40,20,60,.82), rgba(5,8,5,.95)); z-index: 5; cursor: pointer; text-align: center; padding: 16px; }
+  #start h1 { margin: 0; font-size: clamp(26px, 5vw, 44px); font-weight: normal; letter-spacing: .08em; color: var(--accent); }
+  #start p { margin: 0; max-width: 460px; opacity: .85; }
+  #start .btn { margin-top: 8px; padding: 10px 22px; border: 1px solid var(--accent); border-radius: 4px; background: var(--purple); color: var(--ink); font-size: 16px; }
+  #bar { width: 240px; height: 4px; background: #2a2a2a; border-radius: 2px; overflow: hidden; }
+  #bar i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; }
+  #err { color: #ff9b8a; max-width: 520px; font-size: 14px; }
+  /* the toenail colour chooser: a card in the picture's upper left; her feet are in the lower left of the 3D view, her face in the upper right */
+  #nails { position: fixed; left: 16px; top: 62px; width: 300px; max-height: calc(100vh - 78px); overflow-y: auto; box-sizing: border-box; display: none; flex-direction: column; align-items: center; gap: 8px; padding: 12px 12px 14px; z-index: 6;
+           background: rgba(18,8,32,.82); border: 1px solid rgba(214,180,106,.5); border-radius: 10px; box-shadow: 0 6px 22px rgba(0,0,0,.45); text-align: center; }
+  #nails .nl-title { font-size: 18px; letter-spacing: .04em; color: var(--accent); text-shadow: 0 2px 6px #000; }
+  #nails .nl-name { font-size: 14px; opacity: .9; min-height: 18px; }
+  #nails .nl-h { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; opacity: .7; margin: 2px 0 -4px; }
+  #nails .nl-row { display: grid; grid-template-columns: repeat(7, 30px); gap: 7px; }
+  #nl-styles { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+  #nl-styles b { font-weight: normal; font-size: 13px; padding: 5px 9px; border: 1px solid rgba(255,255,255,.4); border-radius: 14px; cursor: pointer; background: rgba(255,255,255,.06); }
+  #nl-styles b:hover { background: rgba(255,255,255,.18); }
+  #nl-styles b.on { border-color: var(--accent); background: var(--purple); }
+  #nails .nl-row i { display: block; width: 30px; height: 30px; border-radius: 50%; border: 2px solid rgba(255,255,255,.55); box-shadow: 0 2px 6px rgba(0,0,0,.6), inset 0 6px 8px rgba(255,255,255,.25); cursor: pointer; transition: transform .12s; box-sizing: border-box; }
+  #nails .nl-row i:hover { transform: scale(1.18); }
+  #nails .nl-row i.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent), 0 2px 6px rgba(0,0,0,.6), inset 0 6px 8px rgba(255,255,255,.25); }
+  #nails .btn { padding: 9px 26px; border: 1px solid var(--accent); border-radius: 4px; background: var(--purple); color: var(--ink); font-size: 16px; cursor: pointer; }
+  #prompt { position: fixed; left: 50%; bottom: 58px; transform: translateX(-50%); display: none; padding: 7px 16px; border: 1px solid var(--accent);
+            border-radius: 5px; background: rgba(28, 14, 48, .82); font-size: 15px; letter-spacing: .03em; cursor: pointer; white-space: nowrap; z-index: 3; }
+</style>
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+} }
+</script>
+</head>
+<body>
+<div id="start">
+  <h1>Forest Camp</h1>
+  <p>A small 3D walk-around of the opening campsite, built from the game's own map layout.</p>
+  <div id="bar"><i></i></div>
+  <div id="status">Loading Anne&hellip;</div>
+  <div class="btn" id="go" style="display:none">Click to enter the camp</div>
+  <div id="err"></div>
+</div>
+<div id="nails"><div class="nl-title">Anne's look</div>
+  <div class="nl-h">Shoes</div><div id="nl-styles"></div>
+  <div class="nl-h">Shoe colour</div><div class="nl-row" id="nl-shoe"></div>
+  <div class="nl-h">Sole</div><div class="nl-row" id="nl-sole"></div>
+  <div class="nl-h">Toenails</div><div class="nl-row" id="nl-sw"></div>
+  <div class="nl-name" id="nl-name"></div><div class="btn" id="nl-go">Start</div></div>
+<div id="title">Forest Camp<small>fan-made 3D recreation</small></div>
+<div id="hud"><b>WASD / arrows</b> move &nbsp; <b>Shift</b> run &nbsp; <b>Alt</b> walk &nbsp; <b>drag</b> or <b>Q / E</b> turn camera &nbsp; <b>wheel</b> zoom &nbsp; <b>M</b> music: <span id="musState">off</span> &nbsp; <b>E</b> interact &nbsp; <b>F</b> foot cam &nbsp; <b>L</b> <span id="lookkey">Anne's look</span> &nbsp; <b>N</b> map &nbsp; <b>T</b> when caught &nbsp; <b>U</b> graphics</div>
+<audio id="bgm" src="forest3.mp3" loop preload="auto"></audio>
+
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+const $ = (id) => document.getElementById(id);
+const showErr = (e) => { console.error(e); $('err').textContent = String(e && e.message || e); };
+window.addEventListener('error', (e) => showErr(e.error || e.message));
+const qp = new URLSearchParams(location.search);
+
+const VER = '330';                                  // bump when assets or modules change so browsers don't serve stale copies
+// which area: the camp, the Forest Pond north of it, or the North Forest south of it
+// [level file, title, line on the loading card, music]
+const AREAS = { camp: ['level.json', 'Forest Camp', '', 'forest3.mp3'], pond: ['level_pond.json', 'Forest Pond', 'The path north of the camp opens onto the pond.', 'forest3.mp3'],
+  forest: ['level_forest.json', 'North Forest', 'The trail south of the camp leads into the North Forest.', 'forest2.mp3'],
+  caves: ['level_caves.json', 'Caves', 'A gloomy cave under the roots of the North Forest.', 'caves1.mp3'],
+  nest: ['level_nest.json', "Ivy Maiden's Nest", 'Alraune\'s lair, under the flower glade.', 'dungeon3.mp3'],
+  // (10-02) the Chapter 1 epilogue: the clearing at the forest's edge (Boudicca), and the road out of the woods
+  edge: ['level_edge.json', "Forest's Edge", 'The trail comes out of the North Forest at last.', 'forest1.mp3'],
+  road: ['level_road.json', 'Forest Road', 'The road south, out of the woods.', 'field1.mp3'],
+  // (10-02) the opening: the haunted Secret Library in the Tower of Wisdom, a week before the camp (a set, indoors)
+  library: ['level_library.json', 'The Tower of Wisdom', 'It all started that night, in the Tower of Wisdom ...', 'forest3.mp3'],
+  // (10-05) Chapter 2, "Dawn comes Slowly": the Trader Post (the campsite), the Forest of Lys, the square inside Valyndra
+  // City's south gate, and the guard house dungeon where the thief is questioned (the last two are sets)
+  post: ['level_post.json', 'Trader Post', 'A campsite on the road south, at the edge of the Forest of Lys.', 'field1.mp3'],
+  lys: ['level_lys.json', 'Forest of Lys', 'The South Road runs on through the Forest of Lys.', 'forest1.mp3'],
+  valyndra: ['level_valyndra.json', 'Valyndra City', 'The south gate of the strongest city on the mainland.', 'town2.mp3'],
+  barracks: ['level_barracks.json', 'Capital City Dungeons', 'The guard house, built into the city wall.', 'dungeon3.mp3'] };
+// A saved game knows which area she was in and where: the plain address (no ?level) goes to that area, and she starts
+// on the saved spot (below) whenever the address does not say where (?at).
+let SAVE0 = null;
+try { const sv = !qp.has('fresh') && JSON.parse(localStorage.getItem('amirian3d.save.v1') || 'null'); if (sv && sv.v === 1 && sv.progress > 0) SAVE0 = sv; } catch (e) { /* no storage */ }
+if (SAVE0 && !qp.has('level') && !qp.has('at') && SAVE0.level && SAVE0.level !== 'camp' && AREAS[SAVE0.level]) {
+  const q0 = new URLSearchParams(location.search); q0.set('level', SAVE0.level);
+  location.replace('?' + q0.toString()); await new Promise(() => {});      // (this page stops here; the right area loads)
+}
+const LV = AREAS[qp.get('level')] ? qp.get('level') : 'camp';
+const level = await (await fetch(AREAS[LV][0] + '?v=' + VER)).json();
+const GLADE = !!level.glade;                       // pond and forest: open glades built from the 2D maps (world/pond.js adds their water and rocks)
+if (LV !== 'camp') {
+  $('title').firstChild.textContent = AREAS[LV][1]; document.title = AREAS[LV][1] + ' 3D';
+  $('start').querySelector('h1').textContent = AREAS[LV][1]; $('start').querySelector('p').textContent = AREAS[LV][2];
+  $('go').textContent = 'Click to enter';
+}
+if (qp.has('dir')) $('start').querySelector('p').textContent = '';          // (walking in from the other area: just the name while it loads)
+
+// ---------- renderer / scene ----------
+const renderer = new THREE.WebGLRenderer({ antialias: !qp.has('noaa'), powerPreference: 'high-performance' });
+renderer.setSize(innerWidth, innerHeight);          // post.js sets the pixel ratio (resolution policy lives there)
+// shadows are configured by world/sky.js; tone mapping and resolution by post.js
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.1, 200);
+
+// ---------- world (terrain, forest, props) ----------
+const { createCommon } = await import('./world/common.js?v=' + VER);
+// (10-02) the graphics quality: Ultra (the default: the screen's full resolution, close-ups too, finer shadows, sharpest
+// texture filtering; the adaptive scaling in post.js steps down from there if frames run slow) or High (the old 2.6 MP
+// budget). U switches it, remembered.
+const ULTRA = (qp.get('quality') || (() => { try { return localStorage.getItem('amirian3d.quality'); } catch (e) { return null; } })() || 'ultra') === 'ultra';
+const C = createCommon({ THREE, scene, renderer, level, qp, camera, ultra: ULTRA });
+const { S, W, H, walkAt, tc, heightAt } = C;
+const BRIDGE = new Set((level.objects && level.objects.bridge || []).map(([x, y]) => x + ',' + y)), DECK_H = 0.08;      // (the plank bridges' tiles, and how high their planks are)
+
+// ?only=sky,terrain loads just those world modules (for looking at one module on its own)
+const ONLY = qp.has('only') ? qp.get('only').split(',') : null;
+const worldParts = [];
+for (const [file, fn] of [['sky', 'buildSky'], ['terrain', 'buildTerrain'], ['foliage', 'buildFoliage'], ['props', 'buildProps'], ...(GLADE ? [['pond', 'buildPond']] : [])]) {
+  if (ONLY && file !== 'sky' && !ONLY.includes(file)) continue;
+  if (level.interior && file !== 'sky') continue;                        // (an indoor set: the story builds the room; the sky gives the lights)
+  try { const mod = await import(`./world/${file}.js?v=${VER}`); worldParts.push(mod[fn](C) || {}); }
+  catch (e) { showErr(e); }
+}
+C.flushInst();
+const shadowFocus = new THREE.Vector3();
+function updateWorld(dt, t) { const flat = (logScene && logScene.grassFlat()) || (story && story.grassFlat()) || (footCam ? footFlat : null) || null; for (const p of worldParts) if (p.update) p.update(dt, t, shadowFocus, flat); }
+
+const { createPost } = await import('./post.js?v=' + VER);
+const post = createPost({ THREE, renderer, scene, camera, qp, ultra: ULTRA });
+
+// ---------- Anne ----------
+$('status').innerHTML = 'Loading Anne&hellip;';
+const { loadAnne } = await import((qp.get('anne') === 'old' ? './anne.js' : './anne_next.js') + '?v=' + VER);
+const A = await loadAnne({ THREE, GLTFLoader, scene, ver: VER, qp, onProgress: (e) => { if (e.total) $('bar').firstElementChild.style.width = (100 * e.loaded / e.total) + '%'; } });
+const anne = A.anne;
+anne.position.copy(tc(...(qp.has('at') ? qp.get('at').split(',').map(Number) : (SAVE0 && SAVE0.level === LV && SAVE0.at && walkAt(Math.round(SAVE0.at[0]), Math.round(SAVE0.at[1])) ? SAVE0.at : level.start))));
+let heading = { south: 0, east: Math.PI / 2, west: -Math.PI / 2 }[qp.get('dir')] ?? Math.PI;         // facing north (-Z) unless she arrives walking south, east or west (?dir=)
+anne.rotation.y = heading;
+
+// ---------- input ----------
+const keys = {};
+let eBlock = false;           // E still held from closing a scene: don't spin the camera
+// music: M toggles it; whether it plays, and where in the track, carries over when she walks into the other area
+const bgm = $('bgm'); if (!bgm.src.endsWith(AREAS[LV][3])) bgm.src = AREAS[LV][3];
+const store = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k); sessionStorage.setItem(k, v); } catch (e) { /* private mode */ } return null; };
+// (10-02) The music is off unless the player turns it on (M, remembered); the sound of the place (below) is always there.
+// A story scene may hush the music for a while (`quiet`: the camp's night before, which has the fire and the crickets).
+const musicOn = (v) => { try { if (v === undefined) return localStorage.getItem('amirian3d.music') === '1'; localStorage.setItem('amirian3d.music', v ? '1' : '0'); } catch (e) { /* private mode */ } return !!v; };
+let hushed = false;
+const musicLabel = () => { const el = document.getElementById('musState'); if (el) el.textContent = musicOn() ? 'on' : 'off'; };
+const playMusic = () => { if (!musicOn() || hushed) return; bgm.volume = .45; const t = store('musicOf') === AREAS[LV][3] ? +store('musicT') : 0; if (t > 0 && bgm.currentTime < 0.5) { try { bgm.currentTime = t; } catch (e) { /* not seekable yet */ } } bgm.play().then(() => store('music', '1')).catch(() => {}); };
+const quiet = (on) => { hushed = !!on; if (on) bgm.pause(); else playMusic(); };
+addEventListener('keydown', (e) => { keys[e.code] = true; if (e.code === 'KeyM' && !e.repeat) { musicOn(!musicOn()); musicLabel(); if (musicOn()) playMusic(); else { bgm.pause(); store('music', '0'); if (window.__music2) window.__music2.pause(); } }
+  if (e.code === 'KeyF' && !e.repeat && window.__ready) footCamKey();      // (10-03: not while the page is still loading: their state is not set up yet)
+  if (e.code === 'KeyL' && !e.repeat && window.__ready) openLook();
+  if (e.code === 'KeyN' && !e.repeat && window.__map) window.__map.toggle();
+  if (e.code === 'KeyT' && !e.repeat && !activeScene()) { const order = ['both', '2d', 'tied'], cur = capPref(), next = order[(order.indexOf(cur) + 1) % 3]; try { localStorage.setItem('amirian3d.capstyle2', next); } catch (err) { /* private mode */ }
+    if (story) story.S.toast('When caught: ' + { both: "the 2D game's scenes, then tied up on her front", '2d': "the 2D game's scenes only", tied: 'tied up on her front only' }[next], 'note', 2.6); }
+  if (e.code === 'KeyU' && !e.repeat) { const next = ULTRA ? 'high' : 'ultra'; try { localStorage.setItem('amirian3d.quality', next); } catch (err) { /* private mode */ }
+    const t = document.createElement('div'); t.textContent = 'Graphics: ' + (next === 'ultra' ? 'Ultra HD' : 'High') + ' (reloading...)'; t.style.cssText = 'position:fixed;left:50%;top:40%;transform:translateX(-50%);z-index:9;padding:10px 18px;background:rgba(18,8,32,.85);color:#f4e9d8;font:18px Georgia;border:1px solid rgba(214,180,106,.6);border-radius:8px';
+    document.body.appendChild(t); setTimeout(() => location.reload(), 700); } });
+if (qp.has('dir') && musicOn()) {       // arrived through an exit with the music on: it resumes with her first key press or click
+  const resume = () => { removeEventListener('keydown', resume); removeEventListener('pointerdown', resume); if (bgm.paused) playMusic(); };
+  addEventListener('keydown', resume); addEventListener('pointerdown', resume);
+}
+// ---------- the sound of the place (10-02): the 2D game's own ambient loops (audio/amb_*.mp3), always playing ----------
+// Birdsong by day (Forest2), the drone of insects (Forest), wind in the trees (Wind); at the camp at night the fire
+// (louder near it), crickets (forest_night) and the trees; water and drips in the rooms. Each loop is laid down as
+// overlapping copies with an equal-power crossfade, so the decoders' padding never shows as a gap or a click.
+// [name, level 0..1, playback rate (the 2D's pitch), tag]; levels are scaled by each file's own loudness (RMS).
+const AMB_RMS = { Fire1: 0.045, Night: 0.061, forest_night: 0.005, Forest: 0.013, Forest2: 0.037, Wind: 0.197, Wind1: 0.102, River: 0.073, Drips: 0.027, Storm2: 0.113, Darkness: 0.445 };
+const AMB_SETS = {
+  camp: { day: [['Forest2', 0.55, 1.0], ['Forest', 0.18, 0.8], ['Wind', 0.28, 1.0]], night: [['Fire1', 0.75, 1.0, 'fire'], ['forest_night', 0.6, 1.0], ['Forest', 0.3, 0.9], ['Wind', 0.25, 0.9]] },
+  pond: { day: [['Forest2', 0.55, 1.0], ['River', 0.35, 1.0], ['Wind', 0.2, 1.0]] },
+  forest: { day: [['Forest2', 0.6, 0.85], ['Forest', 0.14, 1.0], ['Wind', 0.3, 1.0]] },
+  caves: { day: [['River', 0.32, 1.5], ['Drips', 0.45, 1.0], ['Wind1', 0.22, 1.0]] },
+  nest: { day: [['Drips', 0.5, 0.8], ['Forest2', 0.18, 0.95], ['Wind', 0.12, 1.0]] },
+  edge: { day: [['Forest2', 0.5, 0.95], ['Forest', 0.2, 0.9], ['Wind', 0.3, 1.0]], night: [['forest_night', 0.5, 1.0], ['Forest', 0.28, 0.85], ['Wind', 0.3, 0.9]] },      // (the glade at dusk: crickets)
+  road: { day: [['Forest2', 0.6, 1.0], ['Forest', 0.16, 0.8], ['Wind', 0.3, 1.0]] },
+  library: { day: [['Storm2', 0.42, 0.6]], night: [['Storm2', 0.42, 0.6]] },      // (the 2D: Storm2, quiet, slowed to 0.6: rain and wind beyond the walls)
+};
+const amb = (() => {
+  let ctx = null; try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return { start() {}, tick() {}, set() {} }; }
+  const master = ctx.createGain(); master.gain.value = 0.7; master.connect(ctx.destination);
+  const bufs = {}, load = (n) => bufs[n] || (bufs[n] = fetch('audio/amb_' + n + '.mp3?v=' + VER).then((r) => r.arrayBuffer()).then((a) => new Promise((res, rej) => ctx.decodeAudioData(a, res, rej))).catch(() => null));
+  const UP = new Float32Array(32).map((_, i) => Math.sin(i / 31 * Math.PI / 2)), DOWN = UP.slice().reverse();
+  let layers = [], setKey = null, started = false, startT = 0;
+  const layer = ([name, level, rate = 1, tag = ''], fadeIn) => {
+    const L = { name, rate, tag, gain: Math.min(4, level * 0.05 / (AMB_RMS[name] || 0.05)), out: ctx.createGain(), next: 0, buf: null, live: true };
+    L.out.gain.value = 0; L.out.connect(master);
+    load(name).then((b) => { if (!b || !L.live) return; L.buf = b; L.next = ctx.currentTime + 0.05; L.out.gain.setTargetAtTime(L.gain, ctx.currentTime, fadeIn / 3); });
+    return L;
+  };
+  const schedule = () => {
+    const now = ctx.currentTime;
+    for (const L of layers) {
+      if (!L.buf || !L.live) continue;
+      const dur = L.buf.duration / L.rate, xf = Math.min(1.5, dur * 0.3);
+      while (L.next < now + 1.5) {
+        const src = ctx.createBufferSource(), g = ctx.createGain(); src.buffer = L.buf; src.playbackRate.value = L.rate; src.connect(g); g.connect(L.out);
+        const t0 = Math.max(L.next, now + 0.02); g.gain.setValueAtTime(0, t0); g.gain.setValueCurveAtTime(UP, t0, xf); g.gain.setValueCurveAtTime(DOWN, t0 + dur - xf, xf);
+        src.start(t0); src.stop(t0 + dur + 0.05); L.next = t0 + dur - xf;
+      }
+    }
+  };
+  const set = (key) => {
+    const area = AMB_SETS[LV] || AMB_SETS.forest, list = area[key] || area.day; if (key === setKey) return; setKey = key;
+    for (const L of layers) { L.live = false; L.out.gain.setTargetAtTime(0, ctx.currentTime, 0.6); setTimeout(() => L.out.disconnect(), 4000); }
+    layers = list.map((d) => layer(d, layers.length ? 2.0 : 1.0));
+  };
+  setInterval(() => { if (started) schedule(); }, 400);
+  const fireAt = level.campfire ? tc(level.campfire[0], level.campfire[1]) : null;
+  return {
+    start() { if (started) return; startT = performance.now(); ctx.resume().catch(() => {}); started = true; },      // (the first tick, half a second on, picks day or night: an opening scene has set it by then)
+    // every frame: day or night (the camp's), and the fire's loudness by how near she is to it
+    tick() {
+      if (!started || performance.now() - startT < 500) return;
+      const want = C.night && C.night.value > 0.5 && AMB_SETS[LV] && AMB_SETS[LV].night ? 'night' : 'day'; if (want !== setKey) set(want);
+      if (fireAt) for (const L of layers) if (L.tag === 'fire' && L.buf) { const d = Math.hypot(anne.position.x - fireAt.x, anne.position.z - fireAt.z); L.out.gain.setTargetAtTime(L.gain * Math.max(0.12, Math.min(1, 1.25 - d / 12)), ctx.currentTime, 0.25); }
+    },
+    set, ctx, info: () => ({ state: ctx.state, set: setKey, layers: layers.map((L) => [L.name, !!L.buf, +L.out.gain.value.toFixed(3)]) }),
+  };
+})();
+window.__amb = amb;
+addEventListener('keyup', (e) => { keys[e.code] = false; if (e.code === 'KeyE') eBlock = false; });
+addEventListener('blur', () => { for (const k in keys) keys[k] = false; });
+const promptEl = document.createElement('div'); promptEl.id = 'prompt'; document.body.appendChild(promptEl);
+// Scene modules (the log trap and the mimic shoes in the camp; the story everywhere) share one interface:
+// update, lateUpdate, isActive, promptText, interact, obstacles. At most one is active at a time.
+const activeScene = () => (logScene && logScene.isActive() ? logScene : story && story.isActive() ? story : null);
+const prompting = () => { if (activeScene() || pinCam) return null;      // (10-03: nothing starts under the look chooser)
+   for (const sc of [story, logScene]) if (sc && sc.promptText()) return sc; return null; };
+const canInteract = () => !!prompting();
+addEventListener('keydown', (e) => {
+  if (e.repeat || !['KeyE', 'Space', 'Enter'].includes(e.code) || !canInteract()) return;
+  e.preventDefault(); setTimeout(() => { const sc = prompting(); if (sc) { if (footPlay) footPlay.stop(); sc.interact(); } }, 0);   // after this event, so the scene doesn't see it (10-03: a sole that is up for the player comes down first, or its release a frame later would undo the scene's first clip)
+});
+promptEl.addEventListener('click', () => { const sc = prompting(); if (sc) { if (footPlay) footPlay.stop(); sc.interact(); } });
+renderer.domElement.addEventListener('pointerdown', (e) => { if (footPlay && footPlay.wantsPointer()) return; dragging = true; lx = e.clientX; ly = e.clientY; renderer.domElement.setPointerCapture(e.pointerId); });
+renderer.domElement.addEventListener('pointerup', () => { dragging = false; });
+renderer.domElement.addEventListener('pointermove', (e) => {
+  if (!dragging) return; camManual = gameT; camTurned = true; camYaw -= (e.clientX - lx) * 0.006; camPitch = THREE.MathUtils.clamp(camPitch + (e.clientY - ly) * 0.004, 0.08, 1.2); lx = e.clientX; ly = e.clientY;
+});
+renderer.domElement.addEventListener('wheel', (e) => { camManual = gameT; camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.004, 2.5, 14); }, { passive: true });
+
+// collision against the map's passability grid and the log
+const R = 0.3, FREE_OFF = [[-R, -R], [R, -R], [-R, R], [R, R], [0, 0]];
+const obstacleSets = [];        // each scene module's list of round obstacles { x, z, r } (they change as vines are cleared)
+const free = (wx, wz) => {
+  for (const o of FREE_OFF) if (!walkAt(Math.floor((wx + o[0]) / S), Math.floor((wz + o[1]) / S))) return false;
+  for (const set of obstacleSets) for (const o of set) if (Math.hypot(wx - o.x, wz - o.z) < o.r + R) return false;
+  return true;
+};
+// Walking is more forgiving than `free` (which scenes use to find a clear spot to stand her on), so that she can NEVER be
+// left unable to move: she may stand up to OUT beyond the edge of the walkable ground, and a spot that is blocked
+// (inside something round, or further out of bounds than that) can always be left: a step is allowed when it ends on a
+// clear spot, or when it makes things better. Blocked ground also pushes her out by itself (unstick, every frame).
+const OUT = 0.15;
+// (10-02) at the water's edge she may go a little further: onto the very edge of the bank and into the shallows, where the
+// ground slopes down under the water (world/terrain.js: 0 at the land's edge, 0.35 m lower a tile out). Not at the camp's stream.
+const OUT_W = GLADE ? 0.45 : OUT, wetAt = (x, z) => GLADE && C.tileAt(Math.floor(x / S), Math.floor(z / S)) === '~';
+const outOfBounds = (x, z) => {                 // how far a point lies from the nearest walkable tile (0: on one)
+  const tx = Math.floor(x / S), tz = Math.floor(z / S); if (walkAt(tx, tz)) return 0;
+  let best = 9;
+  for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
+    if (!walkAt(tx + dx, tz + dz)) continue;
+    const x0 = (tx + dx) * S, z0 = (tz + dz) * S, ex = Math.max(x0 - x, 0, x - (x0 + S)), ez = Math.max(z0 - z, 0, z - (z0 + S));
+    best = Math.min(best, Math.hypot(ex, ez));
+  }
+  return best;
+};
+const blocked = (x, z) => {                     // 0: she may stand here; otherwise how deep in trouble the spot is (metres)
+  let b = Math.max(0, outOfBounds(x, z) - (wetAt(x, z) ? OUT_W : OUT));
+  for (const set of obstacleSets) for (const o of set) { const d = Math.hypot(x - o.x, z - o.z); if (d < o.r + R) b += o.r + R - d; }
+  return b;
+};
+const canStep = (x0, z0, x1, z1) => { const b1 = blocked(x1, z1); if (b1 <= 0) return true; const b0 = blocked(x0, z0); return b0 > 0 && b1 < b0 - 1e-6; };
+function unstick(dt) {                          // on blocked ground she is moved out of it, the shortest way, without a key being pressed
+  const p = anne.position, b0 = blocked(p.x, p.z); if (b0 <= 0) return;
+  const step = Math.min(b0 + 0.02, 2.2 * dt); let bx = 0, bz = 0, bb = b0;
+  for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, x = p.x + Math.cos(a) * step, z = p.z + Math.sin(a) * step, b = blocked(x, z); if (b < bb - 1e-6) { bb = b; bx = x - p.x; bz = z - p.z; } }
+  if (bb < b0) { p.x += bx; p.z += bz; return; }
+  for (const r of [0.3, 0.6, 1.0, 1.6, 2.4]) for (let i = 0; i < 16; i++) {      // (walled in on every side: the nearest clear spot, wherever it is)
+    const a = i / 16 * Math.PI * 2, x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r; if (blocked(x, z) <= 0) { p.x = x; p.z = z; return; }
+  }
+}
+window.__stuck = () => ({ free: free(anne.position.x, anne.position.z), blocked: +blocked(anne.position.x, anne.position.z).toFixed(3), oob: +outOfBounds(anne.position.x, anne.position.z).toFixed(3) });
+
+// the follow camera's collision (forest wall, rock, tree crowns): camera.js
+const { createFollowCam } = await import('./camera.js?v=' + VER);
+const followCam = createFollowCam({ THREE, C, level, walkAt });
+
+// ---------- the story (every area): saved progress, dialogue, events, enemies ----------
+let logScene = null, story = null, footPlay = null, walkW = 0, vel = 0, dirX = 0, dirZ = -1, pinCam = null;
+let footWho = 'anne', bouBody = null, footPlayB = null, bouBusy = false;      // (10-05: whose feet the foot cam is on; Boudicca's whole figure and her own foot cam, made when first asked for)
+const partyBou = () => (story && story.S.party && story.S.party.boudicca) || null;
+const WHO = { names: () => [window.__heroName ? window.__heroName() : 'Anne', 'Boudicca'], show: () => { const t = partyBou(); return !!(t && t.obj && (t.obj.visible || footWho === 'bou')); }, pick: (i) => setFootWho(i ? 'bou' : 'anne') };      // vel: her speed along the ground now (m/s); dir: where she is going
+let camYaw = heading + Math.PI, camPitch = GLADE ? 0.46 : 0.42, camDist = GLADE ? 7 : 6.2, dragging = false, lx = 0, ly = 0;      // the camera starts behind her
+let camManual = -10, gameT = 0, armLen = camDist;         // when the player last steered the camera (game clock); the boom's current length
+let moveYaw = camYaw, lastIn = '', wasMoving = false, camTurned = false;      // (10-03) the camera bearing the held keys were pressed under (see update); the player turned it by hand this frame
+const AUTO_FOLLOW = !qp.has('nofollow') && !qp.has('yaw') && !qp.has('look') && !qp.has('cam');      // (10-03; tests that set the camera keep it)
+const sceneEnded = (keepCam) => {
+  if (A.anklesTogether) A.anklesTogether(0);        // (10-03: whatever tied her ankles together is over)
+  eBlock = !!keys.KeyE; A.releaseClips(); heading = anne.rotation.y; anne.rotation.set(0, heading, 0); vel = 0; A.setExpression('neutral'); A.setHeelsWorn(true);
+  if (!keepCam) camYaw = Math.atan2(camera.position.x - anne.position.x, camera.position.z - anne.position.z);      // the follow camera takes over from where the scene's camera is
+  camManual = gameT;      // (and stays there a moment before it swings round behind her)
+};
+try {
+  const { createStory } = await import('./story.js?v=' + VER);
+  story = createStory({ THREE, scene, camera, anne, A, level, LV, S, qp, ver: VER, ownHud: LV === 'camp', showErr,
+    setFocus: (p, k) => post.setFocus(p, k), setCloseUp: (m) => post.setCloseUp(m), setNight: (k) => { C.night.value = k; },
+    camPlace: (lookAt, yaw, pitch, dist, out) => followCam.place(lookAt, yaw, pitch, dist, out),
+    camRoom: (lookAt, yaw, pitch, dist) => followCam.room(lookAt, yaw, pitch, dist),
+    camFree: (p, pad) => followCam.free(p, pad), camSight: (a, b, pad, stop) => followCam.sight(a, b, pad, stop), bushes: C.bushes || [],
+    go: (to, at, dir, extra) => goLevel(to, at, dir, extra), onEnd: () => sceneEnded(false),
+    busy: () => !!(logScene && logScene.isActive()) });             // (the log scenes run outside the story engine: no saving where she stands in the middle of one)
+} catch (e) { showErr(e); }
+// (10-03, as he asked) playing with her soles: the fuzzy-brush clean-up after a capture, and the foot cam's side bar of tools
+// (footplay.js): fingers, a feather, a tongue, the brush
+try {
+  const { createFootPlay } = await import('./footplay.js?v=' + VER);
+  footPlay = createFootPlay({ THREE, scene, camera, renderer, anne, A, voice: (b, v) => { if (story && story.S.voice) story.S.voice(b, v); }, who: Object.assign({ me: 0 }, WHO),
+    newShoes: () => newShoes(), shoeLook: () => lookNow(), timeScale: () => +(qp.get('ts') || 1), setInset: (o) => post.setInset(o ? Object.assign({ subject: anne }, o) : null) });
+  if (story) story.S.footPlay = footPlay;
+} catch (e) { showErr(e); }
+// ---------- (10-05, as he asked: "create a foot cam option for boudicca as well with all of the same mechanics that work for
+// Anne") ----------
+// While Boudicca walks with Anne (story.S.party.boudicca: her twin, named by the areas where she follows) the foot cam's
+// panel has a row "Anne | Boudicca". On Boudicca her twin is hidden and her whole figure (boudicca.js loadBoudiccaBody: a
+// second figure from Anne's file, made the first time it is asked for) stands in its place, with a foot cam of its own
+// (createFootPlay once more: her own panel, tools, ropes and Lilith's portal; her own lines). Back to Anne, the foot cam
+// off, a step, a scene or the look panel: her twin stands there again.
+async function setFootWho(who) {
+  if (who === footWho || bouBusy) return;
+  if (who === 'bou') {
+    const tw = partyBou(); if (!tw || !tw.obj || !footCam) return;
+    bouBusy = true;
+    try {
+      if (!bouBody) {
+        const { loadBoudiccaBody, BOU_FOOT_LINES } = await import('./boudicca.js?v=' + VER);
+        bouBody = await loadBoudiccaBody({ THREE, GLTFLoader, scene, ver: VER });
+        if (bouBody.setGround) bouBody.setGround(groundUnder);
+        const { createFootPlay } = await import('./footplay.js?v=' + VER);
+        footPlayB = createFootPlay({ THREE, scene, camera, renderer, anne: bouBody.anne, A: bouBody, name: 'Boudicca', lines: BOU_FOOT_LINES, who: Object.assign({ me: 1 }, WHO),
+          voice: (b, v) => { if (story && story.S.voice) story.S.voice(b, v); }, timeScale: () => +(qp.get('ts') || 1), setInset: (o) => post.setInset(o ? Object.assign({ subject: bouBody.anne }, o) : null) });
+      }
+      if (footCam && partyBou() === tw) {              // (still wanted, now that her figure is there)
+        if (footPlay && footPlay.busy()) footPlay.stop();
+        if (footPlay) footPlay.setBar(false);
+        bouBody.anne.position.copy(tw.obj.position); bouBody.anne.rotation.set(0, tw.obj.rotation.y, 0); bouBody.anne.visible = true; tw.obj.visible = false;
+        bouBody.releaseClips(); footWho = 'bou'; fcSnap = true;
+      }
+    } catch (e) { showErr(e); }
+    bouBusy = false;
+  } else {
+    if (footPlayB) footPlayB.setBar(false);              // (stops whatever plays on her, unties her)
+    const tw = partyBou();
+    // (10-05, review) Her twin walked on after Anne while it was hidden: it takes her figure's place before it is seen again.
+    if (tw && tw.obj && bouBody && bouBody.anne.visible && !activeScene()) tw.obj.position.copy(bouBody.anne.position);
+    // (and her figure is settled before it is hidden: hidden, it is no longer updated, and a shoe she had stepped out of
+    // stayed lying in the grass (the copy is the scene's, not hers) and she was found again in the pose she left in)
+    if (bouBody) { bouBody.releaseClips(); bouBody.updateClips(2, 0); if (bouBody.groundFeet) bouBody.groundFeet(); bouBody.anne.visible = false; }
+    if (tw && tw.obj) tw.obj.visible = true;
+    footWho = 'anne'; fcSnap = true;
+  }
+}
+
+// ---------- log scene (the hollow-log trap from the 2D game) ----------
+const V_WALK = 1.5, V_JOG = 2.4, V_RUN = 4.4;      // Alt: a stroll; plain: her everyday pace, an easy jog; Shift: a run
+const OLD_ANNE = qp.get('anne') === 'old';
+// (10-02) the 2D has three of these logs (CE 78): the camp's, one in the North Forest (16,14) and one by the pond (34,8)
+const LOG_AT = { camp: [14, 7], forest: [16, 14], pond: [34, 8] }[LV], LOG_FLAG = LV === 'camp' ? 'logDone' : 'logDone_' + LV;
+if (LOG_AT) try {
+  const { createLogScene } = await import('./logscene.js?v=' + VER);
+  logScene = createLogScene({ THREE, scene, camera, renderer, anne, mixer: A.mixer, playClip: A.playClip, setExpression: A.setExpression, setHeelsWorn: A.setHeelsWorn,
+    setShoe: A.setShoe, heelStyle: A.heelStyle, shoeStyle: A.shoeStyle, shoeStyles: A.shoeStyles,      // (10-03: her loose shoes lie as their style does; she puts them back on one at a time)
+    soleMarks: A.soleMarks, holdClip: A.holdClip, clipTime: A.clipTime, propMarks: A.propMarks, footPlay, anklesTogether: A.anklesTogether,      // (10-03: the sole flash after D licked inside her shoe; the saliva on its footbed)
+    tc, S, walkAt, heelProp: A.heelProp, stuck: A.stuck || undefined, setFocus: (p, k) => post.setFocus(p, k), setCloseUp: (m) => post.setCloseUp(m), logAt: LOG_AT, flagKey: LOG_FLAG,
+    counts: story ? { herbs: story.S.state.herbs, coins: story.S.state.coins, trapDone: !!story.S.state.flags[LOG_FLAG] } : null,
+    onCounts: (h, c) => { if (story) story.S.counts(h, c); }, onFlag: (k, v) => { if (story) story.S.flag(k, v); },
+    onEnd: () => sceneEnded(true) });
+  obstacleSets.push(logScene.obstacles());
+} catch (e) { showErr(e); }
+
+// ---------- changing area, and the looping forest ----------
+let leaving = false;
+const fadeEl = document.createElement('div'); fadeEl.style.cssText = 'position:fixed;inset:0;background:#000;opacity:0;transition:opacity .4s;pointer-events:none;z-index:50'; document.body.appendChild(fadeEl);
+function goLevel(to, at, dir, extra) {              // fade, then load the other area with her standing at `at` (a tile)
+  if (leaving) return;
+  leaving = true; fadeEl.style.opacity = 1; console.log('EXIT to ' + to);
+  store('musicT', String(bgm.currentTime || 0)); store('musicOf', AREAS[LV][3]);
+  const q = new URLSearchParams(location.search); q.set('level', to); q.set('at', at.join(',')); q.set('dir', dir || 'north'); q.set('auto', '1'); q.set('go', '1');
+  for (const k of ['ls', 'ms', 'look', 'goto', 'face', 'sim', 'walk', 'yaw', 'dist', 'cam', 'log', 'prog', 'fresh', 'run', 'flags', 'hold', 'ev', 'pick']) q.delete(k);      // test flags must not follow her into the next area
+  for (const k in (extra || {})) q.set(k, extra[k]);
+  if (story) story.leaveFor(to, at);
+  if (!qp.has('noexit')) setTimeout(() => { location.search = q.toString(); }, 450);
+}
+// The North Forest loops like its 2D map: walking off an edge where the trail runs on (level.wraps) brings her in at
+// the opposite edge. A quick fade covers the jump; she keeps walking the same way.
+let wrapT = -1, wrapTo = null;
+function tryWrap() {
+  if (!level.wraps || leaving || wrapT >= 0 || vel < 0.3) return;
+  const px = anne.position.x / S, pz = anne.position.z / S, tx = Math.floor(px), tz = Math.floor(pz);
+  for (const wr of level.wraps) {
+    const hit = wr.edge === 'west' ? tx === 0 && tz === wr.n && px < 0.4 && dirX < -0.3 : wr.edge === 'east' ? tx === W - 1 && tz === wr.n && px > W - 0.4 && dirX > 0.3
+      : wr.edge === 'north' ? tz === 0 && tx === wr.n && pz < 0.4 && dirZ < -0.3 : tz === H - 1 && tx === wr.n && pz > H - 0.4 && dirZ > 0.3;
+    if (!hit) continue;
+    wrapTo = wr.edge === 'west' ? [(W - 0.62) * S, anne.position.z] : wr.edge === 'east' ? [0.62 * S, anne.position.z] : wr.edge === 'north' ? [anne.position.x, (H - 0.62) * S] : [anne.position.x, 0.62 * S];
+    wrapT = 0; fadeEl.style.transition = 'opacity .22s'; fadeEl.style.opacity = 1;
+    return;
+  }
+}
+function updWrap(dt) {
+  if (wrapT < 0) return;
+  const before = wrapT; wrapT += dt;
+  if (before < 0.24 && wrapT >= 0.24) {             // dark now: carry her across
+    anne.position.x = wrapTo[0]; anne.position.z = wrapTo[1]; firstFrame = true;
+    if (story) story.arrive('wrap');
+    fadeEl.style.opacity = 0; console.log('WRAP to ' + Math.floor(wrapTo[0] / S) + ',' + Math.floor(wrapTo[1] / S));
+  }
+  if (wrapT > 0.6) { wrapT = -1; fadeEl.style.transition = 'opacity .4s'; }
+}
+
+// ---------- this area's part of the story (story_camp.js, story_pond.js, story_forest.js) ----------
+if (story) try {
+  obstacleSets.push(story.obstacles());
+  const content = await import(`./story_${LV}.js?v=${VER}`);
+  // a second track over the area's own music (a fight); null goes back
+  const music2 = new Audio(); music2.loop = true; music2.volume = 0.45;
+  // (10-02) a scene's own track plays whenever the music is on (M), even while the area's music is hushed; null stops it
+  const music = (file) => { if (file) { if (!musicOn()) return; if (!music2.src.endsWith(file + '?v=' + VER)) music2.src = file + '?v=' + VER; bgm.pause(); music2.currentTime = 0; music2.play().catch(() => {}); } else { if (!music2.paused) music2.pause(); if (!hushed && musicOn()) playMusic(); } };
+  window.__music2 = music2;
+  await content.setup(story.S, { C, tc, walkAt, heightAt, logScene, story, VER, post, music, quiet });
+} catch (e) { showErr(e); }
+
+// ---------- loop ----------
+const clock = new THREE.Clock(); let firstFrame = true, promptShown = '';
+const camPos = new THREE.Vector3(), look = new THREE.Vector3(), head = new THREE.Vector3(), aim = new THREE.Vector3(), eye = new THREE.Vector3();
+function update(dt, t) {
+  if (logScene) logScene.update(dt, t);
+  if (story) story.update(dt, t);
+  const act = activeScene(), active = !!act;
+  gameT = t;
+  if (!active) { if (keys.KeyQ) { camYaw += 1.8 * dt; camManual = t; camTurned = true; } if (keys.KeyE && !canInteract() && !eBlock) { camYaw -= 1.8 * dt; camManual = t; camTurned = true; } }
+  let ix = 0, iz = 0;
+  if (keys.KeyW || keys.ArrowUp) iz -= 1; if (keys.KeyS || keys.ArrowDown) iz += 1;
+  if (keys.KeyA || keys.ArrowLeft) ix -= 1; if (keys.KeyD || keys.ArrowRight) ix += 1;
+  const moving = !active && !pinCam && (ix || iz) && !(footPlay && footPlay.tied()) && !(footWho === 'bou' && footPlayB && footPlayB.tied());      // (10-03: tied up in the foot cam she goes nowhere; nor while Boudicca is)
+  updBored(dt, active, moving);
+  // she picks up speed and stops over part of a step, not in one frame
+  const want = moving ? ((keys.ShiftLeft || keys.ShiftRight) ? V_RUN : (keys.AltLeft || keys.AltRight) ? V_WALK : V_JOG) : 0;
+  vel = active ? 0 : vel + THREE.MathUtils.clamp(want - vel, -16 * dt, 10 * dt);
+  // (10-03) the camera now swings round behind her as she walks: the direction the keys mean is taken from the camera when
+  // a key combination starts (and while the player turns it by hand), and held while the keys stay down, so holding A or S
+  // does not chase its own tail
+  const inKey = ix + ',' + iz;
+  if (moving && (inKey !== lastIn || !wasMoving || camTurned)) moveYaw = camYaw;      // (camTurned: Q / E or a drag this frame; not the wheel)
+  lastIn = inKey; wasMoving = moving; camTurned = false;
+  if (moving) {
+    // camera-relative direction: forward = away from the camera (as it was when these keys went down)
+    const fx = -Math.sin(moveYaw), fz = -Math.cos(moveYaw);
+    let dx = fx * -iz + -fz * ix, dz = fz * -iz + fx * ix; const dl = Math.hypot(dx, dz); dx /= dl; dz /= dl;
+    let d = Math.atan2(dx, dz) - heading; d = Math.atan2(Math.sin(d), Math.cos(d)); heading += d * Math.min(1, dt * 10);
+    dirX = dx; dirZ = dz;
+  }
+  if (vel > 0.02 && !active) {
+    const nx = anne.position.x + dirX * vel * dt, nz = anne.position.z + dirZ * vel * dt;
+    const px = anne.position.x, pz = anne.position.z;
+    if (canStep(px, pz, nx, nz)) { anne.position.x = nx; anne.position.z = nz; }
+    else if (canStep(px, pz, nx, pz)) anne.position.x = nx;
+    else if (canStep(px, pz, px, nz)) anne.position.z = nz;
+  }
+  if (!active && !leaving && !pinCam) unstick(dt);
+  if (!active && !leaving) for (const ex of level.exits || []) {          // a way out: fade, then load the other area with her standing at its entrance
+    const tx = Math.floor(anne.position.x / S), tz = Math.floor(anne.position.z / S);
+    if (!ex.tiles.some(([x, y]) => x === tx && y === tz)) continue;
+    if (story && story.blockExit(ex)) { vel = 0; break; }                  // (the story may hold her back, and says why)
+    goLevel(ex.to, ex.spawn, ex.face);
+  }
+  if (!active) { tryWrap(); anne.rotation.y = heading; }
+  updWrap(dt);
+  const animV = active ? (act.anneSpeed ? act.anneSpeed() : 0) : vel;      // a scene may walk her about itself
+  if (OLD_ANNE) A.updateClips(dt, Math.min(1, animV / V_WALK), animV); else A.updateClips(dt, animV);
+  if (window.__posed) A.poseClip(...window.__posed);
+  if (window.__gaitTick) { anne.updateMatrixWorld(true); window.__gaitTick(dt); }
+  if (logScene) logScene.lateUpdate(dt, t);
+  if (story) story.lateUpdate(dt, t);
+  if (A.groundFeet && active) A.groundFeet();       // (10-03: once more in a scene, now that it has put her where it wants her: her feet never under the ground)
+  if (footPlay) {                                   // (10-03: the foot cam's tools; and the brush clean-up inside a scene)
+    if (footWho === 'bou' && (!footCam || active || pinCam || leaving || moving || !partyBou())) setFootWho('anne');      // (the foot cam off, a step, a scene: her twin again)
+    footPlay.setBar(!!footCam && footWho === 'anne' && !active && !pinCam && !leaving);
+    if (moving && footPlay.busy()) footPlay.stop();
+    footPlay.update(dt, t);
+    if (bouBody && bouBody.anne.visible) { bouBody.updateClips(dt, 0); if (bouBody.groundFeet) bouBody.groundFeet(); }
+    if (footPlayB) { footPlayB.setBar(!!footCam && footWho === 'bou' && !active && !pinCam && !leaving); footPlayB.update(dt, t); }
+    if (bouBody && bouBody.anne.visible) bouBody.updateFace(dt, t);
+    if (window.__looks) window.__looks.update(dt, t);      // (what hangs on her: wings beat, a tail sways; `looks` itself is declared further down)
+    if (A.setSkirtLift) A.setSkirtLift(footCam || active || (window.__looks && window.__looks.isOpen() && window.__looks.tab() === 'feet') ? 0.5 : 0);      // (batch 22: a gown is gathered up to her knees wherever the picture is about her feet)
+  }
+  amb.tick();
+  // (10-02) on a plank bridge she stands on its planks (world/pond.js: their tops are 7-8 cm above the ground they lie on): up onto
+  // them as she steps on, down as she steps off; in a scene too, whenever it has her standing on the ground there (not in the air)
+  // ...and at the water's edge she goes down the bank's slope a little (see OUT_W)
+  if (!leaving) {
+    const px = anne.position.x, pz = anne.position.z, onB = BRIDGE.size && BRIDGE.has(Math.floor(px / S) + ',' + Math.floor(pz / S));
+    const want = onB ? DECK_H : wetAt(px, pz) ? -0.35 * Math.min(1, outOfBounds(px, pz) / S) : 0, y = anne.position.y, k = 1 - Math.exp(-dt * 16);
+    if (!active) anne.position.y = y + (want - y) * k;
+    else if (onB && y > -0.02 && y < DECK_H) anne.position.y = DECK_H;      // (a scene that has her standing on the planks)
+  }
+  A.updateFace(dt, t);
+  const pr = prompting(), pt = pr ? pr.promptText() : '';
+  if (pt !== promptShown) { promptShown = pt; promptEl.textContent = pt; promptEl.style.display = pt ? 'block' : 'none'; }
+  shadowFocus.copy(anne.position);
+  if (activeScene()) { anne.visible = true; return updateWorld(dt, t); }
+  if (footCam && !pinCam) { footCamera(dt); return updateWorld(dt, t); }
+
+  // follow camera
+  head.set(anne.position.x, anne.position.y + A.headHeight, anne.position.z);
+  // (10-03) While she walks the camera eases round behind her (he asked not to have to turn it all the time); for 2.5 s after
+  // the player turns it by hand (Q / E, drag, wheel) it stays where it was put. The keys' "forward" is latched (above).
+  if (AUTO_FOLLOW && vel > 0.3 && gameT - camManual > 2.5) {
+    let dy = heading + Math.PI - camYaw; dy = Math.atan2(Math.sin(dy), Math.cos(dy));
+    camYaw += dy * (1 - Math.exp(-dt * 1.7)) * THREE.MathUtils.smoothstep(vel, 0.3, V_JOG);
+  }
+  // The boom: as long as the forest, the rocks and the trees allow (camera.js). It shortens at once and grows back slowly.
+  const len = followCam.place(head, camYaw, camPitch, camDist, camPos);
+  armLen = len < armLen || firstFrame ? len : Math.min(len, armLen + (len - armLen) * (1 - Math.exp(-dt * 3)) + 0.2 * dt);
+  if (armLen < len - 0.05) camPos.sub(head).multiplyScalar(armLen / len).add(head);          // (still growing back: part-way along the same line)
+  // Squeezed against a wall the boom has no length left. Then the view becomes her own: the camera moves to her eyes,
+  // looks out level along the same bearing, and she steps out of the picture. So the player can always look round,
+  // even with her back to the forest or in the narrow path.
+  const fp = 1 - THREE.MathUtils.smoothstep(armLen, 1.2, 2.1);
+  aim.copy(head);
+  if (fp > 0) {
+    const p = camPitch * 0.35;
+    eye.set(head.x, head.y + 0.06, head.z);
+    camPos.lerp(eye, fp);
+    aim.set(camPos.x - Math.sin(camYaw) * Math.cos(p) * 6, camPos.y - Math.sin(p) * 6, camPos.z - Math.cos(camYaw) * Math.cos(p) * 6).lerp(head, 1 - fp);
+  }
+  if (anne.visible ? fp > 0.22 : fp < 0.1) anne.visible = !anne.visible;      // (she is gone before the camera reaches her hat)
+  camPos.y = Math.max(camPos.y, heightAt(camPos.x, camPos.z) + 0.6);
+  if (firstFrame) { camera.position.copy(camPos); look.copy(aim); firstFrame = false; }
+  camera.position.lerp(camPos, 1 - Math.exp(-dt * 8)); look.lerp(aim, 1 - Math.exp(-dt * 12)); camera.lookAt(look);
+  updateWorld(dt, t);
+}
+
+// ---------- the foot cam (10-02): F cuts to her feet, low, from behind; F again from further back and to her right; F again from in
+// front of her, low, her toes towards the picture; F once more, back ----------
+let footCam = 0, fcSnap = true, fcDirect = false;
+const footFlat = { p: new THREE.Vector3(), r: 1.1, k: 0.975 }, fcPos = new THREE.Vector3(), fcLook = new THREE.Vector3(), fcW = new THREE.Vector3(), fcL = new THREE.Vector3();
+const FOOT_CAMS = [null, [-0.6, -0.15, 0.1, 0.04, 0.075, 40], [-0.62, -0.5, 0.34, 0.02, 0.13, 40], [0.64, 0.14, 0.13, 0.03, 0.07, 40]];      // [along her front, to her left, up | look: along her front, up | fov]
+function footCamKey() {
+  if (activeScene() || pinCam) return;
+  footCam = (footCam + 1) % FOOT_CAMS.length; fcSnap = true;
+  if (!footCam) { post.setCloseUp('off'); camera.fov = 50; camera.updateProjectionMatrix(); firstFrame = true; camYaw = heading + Math.PI; }      // (back behind her)
+}
+function footCamera(dt) {
+  const onBou = footWho === 'bou' && bouBody, who = onBou ? bouBody.anne : anne, fp = onBou ? footPlayB : footPlay;      // (10-05: whose feet)
+  const V = FOOT_CAMS[footCam], h = who.rotation.y, fx = Math.sin(h), fz = Math.cos(h), p = who.position;      // (her left is (fz, -fx))
+  fcW.set(p.x + fx * V[0] + fz * V[1], p.y + V[2], p.z + fz * V[0] - fx * V[1]); fcL.set(p.x + fx * V[3], p.y + V[4], p.z + fz * V[3]);
+  const pg = fp && fp.camGoal();      // (10-03: a sole is up for the player's tools: the camera goes to it)
+  if (pg) { fcW.copy(pg.p); fcL.copy(pg.l); }
+  fcW.y = Math.max(fcW.y, heightAt(fcW.x, fcW.z) + 0.05);
+  // (10-03, later: the tools now play by themselves and footplay.js directs the picture, its Motion Reel Kit way: its camera
+  // is taken as it is, every frame: hard cuts on its bar lines, its own slow push inside a shot; back out of it: a cut too)
+  const direct = !!(pg && pg.direct); if (direct !== fcDirect) { fcDirect = direct; fcSnap = true; }
+  const k = fcSnap || direct ? 1 : 1 - Math.exp(-dt * 9); fcSnap = false;
+  fcPos.lerp(fcW, k); fcLook.lerp(fcL, k); camera.position.copy(fcPos); camera.lookAt(fcLook);
+  const fcFov = pg ? pg.fov : V[5];
+  if (camera.fov !== fcFov) { camera.fov = fcFov; camera.updateProjectionMatrix(); }
+  post.setCloseUp('on'); footFlat.p.copy(p); footFlat.r = direct ? 1.9 : 1.1; anne.visible = true;      // (its wider shots stand further back: more grass lies flat)
+  if (fp && fp.tied()) { footFlat.p.set(p.x - fx * 0.7, p.y, p.z - fz * 0.7); footFlat.r = 2.2; }      // (tied on her front: her feet lie a metre behind where she stood)
+}
+// ---------- standing about (10-02): after a few seconds without moving she grows bored. In turn: one foot up on its toes
+// behind the other (the sole flash: her shoe's sole stays on the ground, her heel comes up out of it, anne_next.js), a look
+// round, the other foot, her ankles crossed with one heel up... left and right in turn, in every kind of shoe. Her toes
+// wiggle a little now and then while she stands. ----------
+const BORED_ORDER = ['IdleTiptoe', 'IdleLook', 'IdleCrossR', 'IdleTiptoeR', 'IdleLook', 'IdleCross'];
+const WIGGLE_AT = { IdleLook: [4.9, 1.4], IdleTiptoe: [3.3, 1.2], IdleTiptoeR: [3.6, 1.2], IdleCross: [3.4, 1.2], IdleCrossR: [3.7, 1.2] };      // [when, how long] (s)
+let idleT = 0, bored = null, boredT = 0, boredNext = 5.0, boredN = 0, wiggleT = -1, wiggledIdle = false;
+function wiggle(sec, amp = 0.11) { if (A.setToeWiggle) { A.setToeWiggle(amp, 1.25); wiggleT = sec; } }
+function updBored(dt, active, moving) {
+  if (footPlay && footPlay.busy()) { bored = null; idleT = 0; return; }      // (10-03: her foot is being played with: no idles, and its clip is not let go)
+  const still = !active && !moving && vel < 0.05 && !pinCam && !leaving && !qp.has('nobored');
+  if (wiggleT > 0) { wiggleT -= dt; if (wiggleT <= 0 && A.setToeWiggle) A.setToeWiggle(0); }
+  if (bored) {
+    boredT += dt;
+    const wg = WIGGLE_AT[bored]; if (wg && boredT >= wg[0] && boredT - dt < wg[0] && still) wiggle(wg[1]);
+    if (!still || boredT > A.clipSec(bored) - 0.1) { if (!active) A.releaseClips(); bored = null; idleT = 0; boredNext = 3.5 + Math.random() * 4; }
+    return;
+  }
+  idleT = still ? idleT + dt : 0;
+  if (!still) wiggledIdle = false;
+  if (still && !wiggledIdle && idleT > 2.2) { wiggledIdle = true; wiggle(1.1, 0.08); }      // (standing there: once, a little)
+  if (idleT < boredNext || !A.clipSec) return;
+  let name = qp.has('bored') ? qp.get('bored') : BORED_ORDER[boredN % BORED_ORDER.length]; boredN++;      // (?bored=<clip>: that one every time, for tests)
+  if (!A.hasClip(name)) name = 'IdleLook';
+  if (!A.hasClip(name)) { idleT = 0; return; }
+  A.playClip(name, 0.4); bored = name; boredT = 0;
+}
+window.__bored = () => ({ bored, idleT: +idleT.toFixed(2), footCam });
+window.__footCam = (n) => { footCam = n; fcSnap = true; };      // (tests)
+window.__footWho = (w) => (w ? setFootWho(w).then(() => footWho) : footWho);      // (tests: 'bou' | 'anne'; no argument: whose it is)
+window.__bouFoot = () => ({ body: bouBody, fp: footPlayB });
+
+// ---------- smoothness ----------
+// 1. Warm-up: draw every object once (hidden ones included) behind the start screen, so shaders, GPU pipelines,
+//    vertex buffers and textures are all ready before play. Without it each "first time" (the Kuns appearing, the
+//    shoes flying off, the minigame sparkles) freezes the game for a moment.
+async function warmUp() {
+  if (ULTRA) scene.traverse((o) => { for (const m of (o.material ? [].concat(o.material) : [])) for (const k of ['map', 'normalMap', 'roughnessMap', 'emissiveMap', 'alphaMap']) { const t = m[k]; if (t && t.isTexture && t.anisotropy < C.ANISO) { t.anisotropy = C.ANISO; t.needsUpdate = true; } } });
+  try { if (renderer.compileAsync) await renderer.compileAsync(scene, camera); } catch (e) { console.warn('compileAsync', e); }
+  const hidden = [], culled = [];
+  scene.traverse((o) => { if (!o.visible) { hidden.push(o); o.visible = true; } if (o.frustumCulled) { culled.push(o); o.frustumCulled = false; } });
+  update(0.016, 0); firstFrame = true;
+  if (post.warm) await post.warm();
+  post.render(0.016);
+  for (const o of hidden) o.visible = false;
+  for (const o of culled) o.frustumCulled = !qp.has('nocull');      // ?nocull: test flag, everything is drawn every frame
+  // the dialogue portraits and the cut-scene's HTML: paint them once, nearly invisible, under the start screen, so the
+  // browser has decoded the images and laid out the boxes before the first line of dialogue appears
+  if (logScene && logScene.ready) { try { await logScene.ready; } catch (e) { /* not fatal */ } }      // portraits decoded
+  if (story && story.ready) { try { await story.ready; } catch (e) { /* not fatal */ } }
+  for (const el of document.querySelectorAll('.st-dlg, .st-choice, .st-gauge')) { el.classList.add('st-on'); el.style.opacity = '0.02'; }
+  const shown = [...document.querySelectorAll('.ls-dlg, .ls-choice, .ls-gauge')].filter((el) => !el.classList.contains('ls-on'));
+  for (const el of shown) { el.classList.add('ls-on'); el.style.opacity = '0.02'; }
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+  for (const el of shown) { el.classList.remove('ls-on'); el.style.opacity = ''; }
+  for (const el of document.querySelectorAll('.st-dlg, .st-choice, .st-gauge')) { el.classList.remove('st-on'); el.style.opacity = ''; }
+}
+let simClock = 0;
+// ?perf: record every frame's duration with the scene state it happened in, and report the hitches
+const PERF = qp.has('perf') ? { ft: [], long: [], upd: 0, ren: 0, n: 0, last: 0, tasks: [] } : null;
+if (PERF) {
+  try { new PerformanceObserver((l) => { for (const e of l.getEntries()) PERF.tasks.push([Math.round(e.startTime), Math.round(e.duration)]); }).observe({ entryTypes: ['longtask'] }); } catch (e) { /* unsupported */ }
+  PERF.label = () => { const d = document.querySelector('.ls-dlg.ls-on'); if (d) return 'line ' + d.dataset.line; if (document.querySelector('.ls-gauge.ls-on')) return 'gauge'; return logScene && logScene.isActive() ? 'scene' : 'walk'; };
+  window.__perfReport = () => {
+    const a = PERF.ft.slice(30).sort((x, y) => x - y), q = (p) => a[Math.min(a.length - 1, Math.floor(a.length * p))];
+    const info = renderer.info;
+    console.log('PERF ' + JSON.stringify({ frames: a.length, avg: +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(2), p50: +q(.5).toFixed(1), p95: +q(.95).toFixed(1), p99: +q(.99).toFixed(1), max: +a[a.length - 1].toFixed(1),
+      over20: a.filter((x) => x > 20).length, over34: a.filter((x) => x > 34).length, over50: a.filter((x) => x > 50).length, over100: a.filter((x) => x > 100).length,
+      updMs: +(PERF.upd / PERF.n).toFixed(2), renMs: +(PERF.ren / PERF.n).toFixed(2), renMax: +(PERF.renMax || 0).toFixed(1), calls: info.render.calls, tris: info.render.triangles, programs: info.programs.length, geoms: info.memory.geometries, tex: info.memory.textures,
+      size: [renderer.domElement.width, renderer.domElement.height], post: post.info() }));
+    console.log('PERF_LONG ' + JSON.stringify(PERF.long.slice(0, 60)));
+    console.log('PERF_TASKS ' + JSON.stringify(PERF.tasks.slice(0, 60)));
+    if (qp.has('report')) {                               // histogram of frame times, for a real browser tab reporting on itself
+      const hist = {}; for (const x of a) { const b = x < 12 ? '<12' : x < 18 ? '12-18' : x < 25 ? '18-25' : x < 34 ? '25-34' : x < 50 ? '34-50' : x < 100 ? '50-100' : '>100'; hist[b] = (hist[b] || 0) + 1; }
+      fetch('/report', { method: 'POST', body: JSON.stringify({ tag: qp.get('report'), hidden: document.hidden, frames: a.length, avg: +(a.reduce((x, y) => x + y, 0) / a.length).toFixed(2),
+        p50: +q(.5).toFixed(1), p95: +q(.95).toFixed(1), p99: +q(.99).toFixed(1), max: +a[a.length - 1].toFixed(1), hist, long: PERF.long.slice(0, 40),
+        size: [renderer.domElement.width, renderer.domElement.height], win: [innerWidth, innerHeight], dprNative: devicePixelRatio, post: post.info(), renderer: (() => { const gl = renderer.getContext(), e = gl.getExtension('WEBGL_debug_renderer_info'); return e ? gl.getParameter(e.UNMASKED_RENDERER_WEBGL) : ''; })() }) }).catch(() => {}).finally(() => setTimeout(() => location.replace('about:blank'), 400));   // a test tab frees its memory when it has reported
+    }
+  };
+}
+// ?cam=px,py,pz,lx,ly,lz pins the camera (for screenshots of a fixed view)
+const FIXCAM = qp.has('cam') ? qp.get('cam').split(',').map(Number) : null;
+pinCam = null;                                   // [px, py, pz, lx, ly, lz]: the toenail chooser holds the camera on her feet (declared with the scene state above)
+let lastFrameT = 0;
+function frame(now) {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  if (lastFrameT) post.frameTime(now - lastFrameT); lastFrameT = now;
+  const p0 = PERF ? performance.now() : 0;
+  if (PERF) { const np = renderer.info.programs.length; if (PERF.np !== undefined && np > PERF.np) for (let i = PERF.np; i < np; i++) { const pr = renderer.info.programs[i]; console.log('NEWPROG at ' + PERF.label() + ' t=' + Math.round(p0) + ' name=' + pr.name + ' key=' + String(pr.cacheKey).slice(0, 160)); } PERF.np = np; }
+  if (PERF) { if (PERF.last) { const ft = p0 - PERF.last; PERF.ft.push(ft); if (ft > 34 && PERF.ft.length > 30) PERF.long.push([Math.round(p0), Math.round(ft), PERF.label(), renderer.info.programs.length, +(PERF.lu || 0).toFixed(1), +(PERF.lr || 0).toFixed(1)]); } PERF.last = p0; }
+  if (window.__rtDrive) window.__rtDrive(dt);
+  if (!window.__testTick) update(dt, clock.elapsedTime);
+  if (window.__faceCam) window.__faceCam();
+  if (FIXCAM || pinCam) { const fc = pinCam || FIXCAM; camera.position.set(fc[0], fc[1], fc[2]); camera.lookAt(fc[3], fc[4], fc[5]); if (pinCam) anne.visible = true; }
+  const p1 = PERF ? performance.now() : 0;
+  post.render(dt);
+  if (PERF) { if (qp.get('perf') === '2') { const gl = renderer.getContext(); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PERF.px || (PERF.px = new Uint8Array(4))); }   // perf=2: reading a pixel back waits for the GPU, so renMs includes GPU time
+    const p2 = performance.now(); PERF.upd += p1 - p0; PERF.ren += p2 - p1; PERF.n++; if (p2 - p1 > (PERF.renMax || 0)) PERF.renMax = p2 - p1;
+    PERF.lu = p1 - p0; PERF.lr = p2 - p1; }                  // the script's share of the frame just drawn (the rest of a long frame is the browser's)
+  requestAnimationFrame(frame);
+}
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); post.setSize(innerWidth, innerHeight); });
+
+$('status').innerHTML = 'Warming up&hellip;';
+if (!qp.has('nowarm')) await warmUp();
+$('status').textContent = 'Ready.'; $('go').style.display = '';
+let started = false;
+const startGame = () => { if (started) return; started = true; amb.start(); musicLabel(); $('start').style.display = 'none'; if (window.__lookBtn) window.__lookBtn.style.display = ''; if (window.__map) window.__map.started(); playMusic(); if (story) story.arrive(qp.has('dir') ? 'exit' : 'start'); };
+if (story && story.hasSave() && !qp.has('dir')) {      // a saved game: carry on, or start again
+  $('go').textContent = 'Continue';
+  const fresh = document.createElement('div'); fresh.className = 'btn'; fresh.textContent = 'New game'; fresh.style.background = '#2a2a3a';
+  fresh.addEventListener('click', (e) => { e.stopPropagation(); story.reset(); if (location.search) location.search = ''; else location.reload(); });
+  $('go').after(fresh);
+} else if (story && LV === 'camp' && !qp.has('dir')) $('go').textContent = 'Begin';
+// ---------- the colour of her toenails ----------
+// Chosen before a new game (and from the start screen at any time): she sits with her bare feet held up to the picture,
+// and the colour under the pointer is tried on her toes at once. The choice is kept with the browser's saved game.
+// (10-03, as he asked: the everyday names, with lighter and darker shades; every line about them follows the name,
+// story_common.js NAIL_FAM. A colour saved under the old names is taken to the nearest of these.)
+const NAILS = [['Purple', '#5a2d91'], ['Light purple', '#b79cf2'], ['Dark purple', '#3b1663'], ['Red', '#c4122f'], ['Dark red', '#7a0e1d'],
+  ['Pink', '#e8457f'], ['Hot pink', '#ff5fa8'], ['Light pink', '#f7b3cc'], ['Orange', '#ff9a1f'], ['Yellow', '#f2cf2b'], ['Gold', '#e2b532'],
+  ['Green', '#2e9e4f'], ['Light green', '#6fe3b2'], ['Teal', '#149c9c'], ['Blue', '#2f6fe0'], ['Light blue', '#5ab4ff'], ['Dark blue', '#1c2a6b'],
+  ['Black', '#16141a'], ['White', '#f4ece6'], ['Silver', '#c0c4cc']];
+const nearestNail = (hex) => { const rgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)), a = rgb(hex); let best = NAILS[0][1], bd = Infinity;
+  for (const [, h] of NAILS) { const b = rgb(h), d = (a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2; if (d < bd) { bd = d; best = h; } } return best; };
+let nailColor = '#5a2d91';
+try { const v = localStorage.getItem('amirian3d.nail'); if (v && /^#[0-9a-f]{6}$/i.test(v)) nailColor = nearestNail(v.toLowerCase()); } catch (e) {}
+if (qp.has('nail')) { const v = NAILS[+qp.get('nail')]; if (v) nailColor = v[1]; }
+if (A.setNailColor) A.setNailColor(nailColor);
+// ---------- her shoes: which pair, and their colours (kept with the browser's saved game, as her toenails are) ----------
+const SHOE_COLS = [['Purple', '#6a34a6'], ['Black', '#1b1b1f'], ['White', '#f2f0ea'], ['Red', '#c4122f'], ['Hot pink', '#ff5fa8'], ['Rose gold', '#d9a08c'], ['Gold', '#c9a23a'],
+  ['Silver', '#b9bcc4'], ['Tan', '#c8a27a'], ['Brown', '#7a4a2a'], ['Teal', '#149c9c'], ['Royal blue', '#2748b8'], ['Mint', '#6fe3b2'], ['Lilac', '#b79cf2']];
+const SOLE_COLS = [['Matching (a darker shade)', ''], ['Tan', '#b98a5a'], ['Brown', '#6b3f24'], ['Black', '#17171a'], ['White', '#efece6'], ['Cork', '#c9a46e'], ['Pink', '#e88aa8']];
+const HEX = /^#[0-9a-f]{6}$/i, stored = (k, d, ok) => { try { const v = localStorage.getItem(k); return v !== null && ok(v) ? v : d; } catch (e) { return d; } }, keep = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
+const STYLES = A.shoeStyles ? A.shoeStyles() : [];
+let shoeStyle = stored('amirian3d.shoe', STYLES.length ? STYLES[0].id : '', (v) => STYLES.some((x) => x.id === v));
+let shoeCol = stored('amirian3d.shoecol', '#6a34a6', (v) => HEX.test(v)), soleCol = stored('amirian3d.solecol', '', (v) => v === '' || HEX.test(v));
+if (qp.has('shoe') && STYLES.some((x) => x.id === qp.get('shoe'))) shoeStyle = qp.get('shoe');
+if (qp.has('shoecol') && HEX.test('#' + qp.get('shoecol'))) shoeCol = '#' + qp.get('shoecol');
+if (qp.has('solecol') && HEX.test('#' + qp.get('solecol'))) soleCol = '#' + qp.get('solecol');
+const wear = (st = shoeStyle, col = shoeCol, sole = soleCol) => { if (A.setShoeStyle && st) A.setShoeStyle(st); if (A.setShoeColor) A.setShoeColor(col, sole || (st === 'geta' ? '#b98a55' : null)); };      // (geta: a wooden board unless the player picks a sole colour)
+wear();
+// (10-03, as he asked) her feet and shoes never sink into the ground (anne_next.js groundFeet): the ground under a point is
+// the planks on a bridge tile, the pond's bed in its shallows (as far down as she wades there), 0 everywhere else
+const groundUnder = (x, z) => (BRIDGE.size && BRIDGE.has(Math.floor(x / S) + ',' + Math.floor(z / S)) ? DECK_H : wetAt(x, z) ? -0.35 * Math.min(1, outOfBounds(x, z) / S) : 0);
+if (A.setGround) A.setGround(groundUnder);
+// (10-03) in the foot cam she changes her shoes now and then (footplay.js): another pair, kept as her look
+function newShoes() {
+  const others = STYLES.filter((x) => x.id !== shoeStyle); if (!others.length) return false;
+  shoeStyle = others[(Math.random() * others.length) | 0].id; keep('amirian3d.shoe', shoeStyle); wear(); console.log('SHOES changed to ' + shoeStyle);
+  return true;
+}
+// what she has on, for the story's lines about it (story_common.js lookTalk): the pair, its colour and her toenails, in words
+const lookNow = () => { const st = STYLES.find((x) => x.id === shoeStyle), c = SHOE_COLS.find((n) => n[1] === shoeCol), f = NAILS.find((n) => n[1] === nailColor);
+  return { style: shoeStyle, label: st ? st.label : '', shoe: c ? c[0].toLowerCase() : '', nail: f ? f[0].toLowerCase() : '', key: shoeStyle + '|' + shoeCol + '|' + nailColor }; };
+if (story) story.S.look = lookNow;
+// (10-03) when a monster catches her: 'both' (the default, as he asked: every 2D round as before, then the prone tied scene as the
+// last one), '2d' or 'tied' alone (T cycles them). A new key: an older 'mix' / 'tied' choice must not hide the new default.
+function capPref() { try { const v = localStorage.getItem('amirian3d.capstyle2'); return v === '2d' || v === 'tied' ? v : 'both'; } catch (e) { return 'both'; } }
+if (story) story.S.capStyle = () => { const p = qp.get('capstyle'); return p === '2d' || p === 'tied' || p === 'both' ? p : capPref(); };
+// ---------- her shoes and toenails: the rows of the look panel's "Feet" tab (looks.js), and the pose they are tried on in ----------
+// (10-04: this was the whole chooser; it is one tab of the player's look now. feetRows fills its rows once; feetPose(on) has
+// her lie back on her hands with her legs held up, the camera close in front of her toes, and undoes that.)
+let feetPosed = false, feetWas = null, feetMark = () => {};
+function feetRows() {
+  const sw = $('nl-sw'), nm = $('nl-name'), stEl = $('nl-styles'), scEl = $('nl-shoe'), soEl = $('nl-sole');
+  const label = () => { const st = STYLES.find((x) => x.id === shoeStyle), c = SHOE_COLS.find((n) => n[1] === shoeCol), f = NAILS.find((n) => n[1] === nailColor); nm.textContent = (st ? st.label : '') + (c ? ', ' + c[0].toLowerCase() : '') + (f ? ' · nails: ' + f[0].toLowerCase() : ''); };
+  const mark = feetMark = () => {
+    for (const e of sw.children) e.classList.toggle('on', e.dataset.c === nailColor);
+    for (const e of stEl.children) e.classList.toggle('on', e.dataset.s === shoeStyle);
+    for (const e of scEl.children) e.classList.toggle('on', e.dataset.c === shoeCol);
+    for (const e of soEl.children) e.classList.toggle('on', e.dataset.c === soleCol);
+    label();
+  };
+  const shoesOn = (on) => { if (feetPosed) A.setHeelsWorn(on); };                              // (the pointer over the nail colours: her feet bare, so that her toes show whatever she wears)
+  const swatch = (el, name, hex, over, out, pick) => {
+    const e = document.createElement('i'); e.style.background = hex || 'linear-gradient(135deg, #888 50%, #333 50%)'; e.dataset.c = hex; e.title = name;
+    e.addEventListener('pointerenter', () => { over(); nm.textContent = name; });                 // tried on at once
+    e.addEventListener('pointerleave', () => { out(); label(); });
+    e.addEventListener('click', (ev) => { ev.stopPropagation(); pick(); mark(); });
+    el.appendChild(e);
+  };
+  if (!sw.children.length) {
+    for (const [name, hex] of NAILS) swatch(sw, name, hex, () => { shoesOn(false); A.setNailColor(hex); }, () => { A.setNailColor(nailColor); shoesOn(true); }, () => { nailColor = hex; A.setNailColor(hex); keep('amirian3d.nail', hex); });
+    for (const [name, hex] of SHOE_COLS) swatch(scEl, name, hex, () => wear(shoeStyle, hex, soleCol), () => wear(), () => { shoeCol = hex; keep('amirian3d.shoecol', hex); wear(); });
+    for (const [name, hex] of SOLE_COLS) swatch(soEl, name, hex, () => wear(shoeStyle, shoeCol, hex), () => wear(), () => { soleCol = hex; keep('amirian3d.solecol', hex); wear(); });
+    for (const st of STYLES) {
+      const e = document.createElement('b'); e.textContent = st.label; e.dataset.s = st.id;
+      e.addEventListener('pointerenter', () => { wear(st.id); nm.textContent = st.label; });
+      e.addEventListener('pointerleave', () => { wear(); label(); });
+      e.addEventListener('click', (ev) => { ev.stopPropagation(); shoeStyle = st.id; keep('amirian3d.shoe', st.id); wear(); mark(); });
+      stEl.appendChild(e);
+    }
+  }
+  mark();
+}
+function feetPose(on) {
+  if (!!on === feetPosed) return;
+  if (on) {
+    // she lies back on her hands where she stood and holds her legs up; the camera close in front of her toes and above them, looking
+    // down along her legs (the view tools/anne2/poses_dev.py --views nails renders): her feet in the foreground, her face behind
+    if (!A.hasClip('NailShow')) return;
+    const h = anne.rotation.y, fx = Math.sin(h), fz = Math.cos(h), p = anne.position;      // (her left is (fz, -fx))
+    feetWas = A.shoes ? A.shoes() : { L: true, R: true };
+    feetPosed = true; A.setHeelsWorn(true); A.playClip('NailShow', 0); A.setExpression('smile');
+    const at = (f, l, u) => [p.x + fx * f + fz * l, p.y + u, p.z + fz * f - fx * l];
+    pinCam = [...at(1.12, 0.02, 0.66), ...at(0.62, -0.08, 0.33)]; camera.fov = 70; camera.updateProjectionMatrix(); post.setCloseUp('on');
+  } else {
+    feetPosed = false; post.setCloseUp('off'); A.releaseClips(); wear(); A.setNailColor(nailColor);
+    if (feetWas) { A.setShoe('L', feetWas.L); A.setShoe('R', feetWas.R); }
+  }
+}
+// ---------- (10-04, as he asked) the player's look: her name, a heritage to start from, skin, face, eyes, hair, outfit, and
+// her shoes and toenails as one of its tabs (looks.js). Before a new game, from the start screen, and during play (L). ----------
+let looks = null;
+try {
+  const { createLooks } = await import('./looks.js?v=' + VER);
+  looks = createLooks({ THREE, scene, A, anne, camera, post, qp, canvas: renderer.domElement, feetRows, feetPose,
+    pin: (arr, fov) => { pinCam = arr; if (fov && camera.fov !== fov) { camera.fov = fov; camera.updateProjectionMatrix(); } },
+    unpin: () => { pinCam = null; if (camera.fov !== 50) { camera.fov = 50; camera.updateProjectionMatrix(); } firstFrame = true; },
+    pinned: () => !!pinCam, heading: () => heading, setHeading: (h) => { heading = h; anne.rotation.y = h; },
+    onHat: (h) => { const L = window.__hatLook || (window.__hatLook = { n: 0 }); Object.assign(L, h); L.n++; },
+    onName: (n) => { const b = window.__lookBtn; if (b) b.textContent = n + "'s look (L)"; const k = document.getElementById('lookkey'); if (k) k.textContent = n + "'s look"; const st = document.getElementById('lookstart'); if (st) st.textContent = 'Customize ' + n; } });
+  window.__looks = looks;
+} catch (e) { showErr(e); }
+const heroName = () => (looks ? looks.name() : 'Anne');
+if (story) { story.S.heroName = heroName; story.S.lookWords = () => (looks ? looks.lookWords() : null); story.S.facePortrait = (e, b) => (looks ? looks.portrait(e, b) : null); }
+window.__heroName = heroName; window.__facePortrait = (e, b) => (looks ? looks.portrait(e, b) : null);      // (the log scene, made before this, asks through these)
+function openLooks(then, tab) { if (looks) looks.open(then, tab); else if (then) then(); }
+// ...and during play, from L or the button under the counters: "Done" and on
+function openLook() {
+  if (!started || pinCam || activeScene() || leaving || !looks) return;
+  if (footCam) { footCam = 0; post.setCloseUp('off'); }
+  keys.KeyW = keys.KeyA = keys.KeyS = keys.KeyD = false; vel = 0; if (bored) { A.releaseClips(); bored = null; } idleT = 0;
+  looks.goLabel('Done'); const before = lookNow().key, wasLook = JSON.stringify(looks.state());
+  openLooks(() => { if (story && story.S.onLook && (lookNow().key !== before || JSON.stringify(looks.state()) !== wasLook)) story.S.onLook(lookNow()); });      // (an area may have something to say about it: her shoes, or the rest of her)
+}
+{ const b = document.createElement('div'); b.id = 'lookbtn'; b.textContent = heroName() + "'s look (L)"; b.title = 'Her name, skin, face, eyes, hair, outfit, shoes and toenails';
+  b.style.cssText = 'position:fixed;top:78px;right:16px;padding:6px 10px;border:1px solid rgba(214,180,106,.6);border-radius:6px;background:rgba(18,8,32,.72);color:#f4e9d8;font-size:13px;cursor:pointer;z-index:5;display:none';
+  b.addEventListener('click', (e) => { e.stopPropagation(); openLook(); }); document.body.appendChild(b); window.__lookBtn = b; }
+// ---------- the map (10-02): N shows a small map of the area in the corner: paths, water, hedge, where she is and which way
+// she faces, and whatever the area's story marks on it (story.S.mapMarks: { x, y (tiles), col, label, when() }). On by default
+// in the rooms (the caves and the nest: hedge mazes); hidden during scenes. ----------
+{
+  const PX = Math.max(4, Math.min(8, Math.floor(200 / Math.max(W, H)))), cv = document.createElement('canvas'), g = cv.getContext('2d');
+  cv.width = W * PX; cv.height = H * PX;
+  cv.style.cssText = 'position:fixed;top:116px;right:16px;z-index:5;border:1px solid rgba(214,180,106,.6);border-radius:6px;background:rgba(18,8,32,.72);padding:4px;display:none;image-rendering:pixelated;pointer-events:none';
+  document.body.appendChild(cv);
+  const base = document.createElement('canvas'); base.width = cv.width; base.height = cv.height; const b = base.getContext('2d');
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const t = C.tileAt(x, y), wk = walkAt(x, y);
+    b.fillStyle = wk ? (BRIDGE.has(x + ',' + y) ? '#9a6a3c' : '#c9b48a') : t === '~' ? '#2f6f8f' : t === 'W' ? '#7fb6d0' : '#1f3a1c';
+    b.fillRect(x * PX, y * PX, PX, PX);
+  }
+  for (const wr of level.wraps || []) {                 // the edges that run on round to the other side: a bright notch
+    const n = wr.n, at = wr.edge === 'west' ? [0, n] : wr.edge === 'east' ? [W - 1, n] : wr.edge === 'north' ? [n, 0] : [n, H - 1];
+    if (!walkAt(at[0], at[1])) continue;
+    b.fillStyle = '#ffd36b'; b.fillRect(at[0] * PX + (wr.edge === 'east' ? PX - 2 : 0), at[1] * PX + (wr.edge === 'south' ? PX - 2 : 0), wr.edge === 'north' || wr.edge === 'south' ? PX : 2, wr.edge === 'west' || wr.edge === 'east' ? PX : 2);
+  }
+  let on = !!level.room && !qp.has('nomap'), live = false;
+  const draw = () => {
+    const show = on && live && !activeScene() && !pinCam && !footCam;
+    cv.style.display = show ? 'block' : 'none'; if (!show) return;
+    g.drawImage(base, 0, 0);
+    const marks = (story && story.S.mapMarks) || [];
+    for (const m of marks) {
+      if (m.when && !m.when()) continue;
+      g.fillStyle = m.col || '#ff6fae'; g.beginPath(); g.arc((m.x + 0.5) * PX, (m.y + 0.5) * PX, m.r || PX * 0.42, 0, Math.PI * 2); g.fill();
+      if (m.label) { g.font = `bold ${Math.max(8, PX + 2)}px Georgia`; g.fillStyle = m.textCol || '#fff2d8'; g.textAlign = 'center'; g.fillText(m.label, (m.x + 0.5) * PX, (m.y + 0.5) * PX - PX * 0.7); }
+    }
+    const ax = anne.position.x / S * PX, az = anne.position.z / S * PX, h = anne.rotation.y;
+    g.fillStyle = '#ff4f9a'; g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.arc(ax, az, Math.max(3, PX * 0.5), 0, Math.PI * 2); g.fill(); g.stroke();
+    g.beginPath(); g.moveTo(ax, az); g.lineTo(ax + Math.sin(h) * PX * 1.3, az + Math.cos(h) * PX * 1.3); g.stroke();
+  };
+  setInterval(draw, 120);
+  window.__map = { toggle() { on = !on; draw(); }, started() { live = true; draw(); }, get on() { return on; } };
+  if (qp.has('auto')) live = true;
+}
+window.__nails = { open: () => openLooks(() => {}, 'feet'), list: NAILS, get color() { return nailColor; }, get shoe() { return [shoeStyle, shoeCol, soleCol]; }, cam: (a, fov) => { pinCam = a; if (fov) { camera.fov = fov; camera.updateProjectionMatrix(); } } };      // (tests)
+{                                                // the start screen (10-04): a new game begins with the look panel (her name, heritage, skin, face, eyes, hair, outfit, feet);
+  const isNew = !(story && story.hasSave() && !qp.has('dir'));      // "Continue" goes straight on; one button offers the panel either way, and L does during play
+  const b = document.createElement('div'); b.className = 'btn'; b.id = 'lookstart'; b.textContent = 'Customize ' + heroName(); b.style.background = '#2a2a3a'; b.style.fontSize = '14px';
+  b.addEventListener('click', (e) => { e.stopPropagation(); if (looks) looks.goLabel(isNew ? 'Begin' : 'Continue'); openLooks(startGame, 'name'); });
+  { const all = $('start').querySelectorAll('.btn'); (all.length ? all[all.length - 1] : $('go')).after(b); }
+  // ...and her shoes and toenails are offered by name here too (the same panel, opened on its Feet tab)
+  const f = document.createElement('div'); f.className = 'btn'; f.id = 'feetstart'; f.textContent = 'Shoes and toenails'; f.style.background = '#2a2a3a'; f.style.fontSize = '14px';
+  f.addEventListener('click', (e) => { e.stopPropagation(); if (looks) looks.goLabel(isNew ? 'Begin' : 'Continue'); openLooks(startGame, 'feet'); });
+  b.after(f);
+  const testing = ['auto', 'ev', 'ls', 'ms', 'log'].some((k) => qp.has(k));      // (test flags start a scene of their own: no panel in its way)
+  $('start').addEventListener('click', () => { if (isNew && !testing && !activeScene() && looks) { looks.goLabel('Begin'); openLooks(startGame, 'name'); } else startGame(); }, { once: true });
+}
+if (qp.has('mem')) {                         // ?mem: how many bytes of vertex data and textures the scene holds (CPU copies = the same again)
+  const seen = new Set(); let geo = 0, inst = 0, morph = 0, tex = 0; const by = {};
+  scene.traverse((o) => {
+    const g = o.geometry; if (!g) return;
+    let n = 0;
+    for (const k in g.attributes) { const a = g.attributes[k].data ? g.attributes[k].data.array : g.attributes[k].array; if (a && !seen.has(a)) { seen.add(a); n += a.byteLength; } }
+    if (g.index && !seen.has(g.index.array)) { seen.add(g.index.array); n += g.index.array.byteLength; }
+    for (const k in g.morphAttributes) for (const a of g.morphAttributes[k]) if (a.array && !seen.has(a.array)) { seen.add(a.array); morph += a.array.byteLength; }
+    if (o.isInstancedMesh) { if (!seen.has(o.instanceMatrix.array)) { seen.add(o.instanceMatrix.array); inst += o.instanceMatrix.array.byteLength; } if (o.instanceColor && !seen.has(o.instanceColor.array)) { seen.add(o.instanceColor.array); inst += o.instanceColor.array.byteLength; } }
+    geo += n; let top = o; while (top.parent && top.parent !== scene) top = top.parent; by[top.name || top.type] = (by[top.name || top.type] || 0) + n;
+  });
+  const big = Object.entries(by).sort((x, y) => y[1] - x[1]).slice(0, 12).map(([k, v]) => k + ' ' + (v / 1048576).toFixed(1));
+  const texSeen = new Set(), texList = []; let texMB = 0;
+  const addTex = (t, where) => { if (!t || !t.isTexture || texSeen.has(t)) return; texSeen.add(t); const im = t.image || {}; const w = im.width || 0, h = im.height || 0, d = im.depth || 1;
+    const mb = w * h * d * 4 * (t.generateMipmaps ? 1.33 : 1) / 1048576; texMB += mb; texList.push([+(mb).toFixed(1), w + 'x' + h + (d > 1 ? 'x' + d : ''), (im.tagName || im.constructor && im.constructor.name || '?'), where]); };
+  scene.traverse((o) => { for (const m of [].concat(o.material || [])) { for (const k in m) addTex(m[k], (o.name || o.type) + '.' + k); if (m.uniforms) for (const k in m.uniforms) addTex(m.uniforms[k] && m.uniforms[k].value, (o.name || o.type) + '.u.' + k); } });
+  addTex(scene.environment, 'environment'); addTex(scene.background, 'background');
+  texList.sort((x, y) => y[0] - x[0]);
+  console.log('MEMTEX ' + JSON.stringify({ texturesMB: +texMB.toFixed(1), n: texList.length, top: texList.slice(0, 14) }));
+  console.log('MEM ' + JSON.stringify({ geometryMB: +(geo / 1048576).toFixed(1), instancesMB: +(inst / 1048576).toFixed(1), morphMB: +(morph / 1048576).toFixed(1), geometries: renderer.info.memory.geometries, textures: renderer.info.memory.textures, big }));
+}
+window.__postInfo = () => post.info();           // (tests read the resolution in use)
+window.__pose = (name, phase) => { window.__posed = [name, phase]; return A.poseClip(name, phase); };      // freeze her in one clip at a point of its loop
+if (qp.has('gaitprobe')) {                        // do her feet slide? Speed of the ball of each foot over the ground, every frame:
+  // while a foot is planted that speed must be ~0 (the slowest tenth of the samples), and it must be planted for a good share of the time
+  const mk = ['R', 'L'].map((sd) => anne.getObjectByName('Marker_Sole_' + sd + '_Ball')), last = mk.map(() => null), tmpV = new THREE.Vector3();
+  let samples = [];
+  window.__gaitTick = (dt) => mk.forEach((m, i) => {
+    if (!m || dt <= 0) return;
+    m.getWorldPosition(tmpV);
+    if (last[i]) samples.push(Math.hypot(tmpV.x - last[i].x, tmpV.z - last[i].z) / dt);
+    last[i] = (last[i] || new THREE.Vector3()).copy(tmpV);
+  });
+  window.__gaitProbe = () => { const a = samples.sort((x, y) => x - y); samples = [];
+    return { samples: a.length, vel: +vel.toFixed(2), slowestTenth: +(a[Math.floor(a.length * 0.1)] || 0).toFixed(3), planted: +(a.filter((v) => v < 0.2).length / Math.max(1, a.length)).toFixed(2), fastest: +(a[a.length - 1] || 0).toFixed(2) }; };
+}
+window.__setCam = (yaw, pitch, dist) => { camYaw = yaw; if (pitch !== undefined) camPitch = pitch; if (dist !== undefined) camDist = dist; camManual = gameT; firstFrame = true; };
+window.__cam = () => ({ len: +armLen.toFixed(2), yaw: +camYaw.toFixed(3), pitch: +camPitch.toFixed(3), dist: +camDist.toFixed(2), cam: camera.position.toArray().map((v) => +v.toFixed(2)), anne: anne.position.toArray().map((v) => +v.toFixed(2)), heading: +heading.toFixed(3), tile: [Math.floor(anne.position.x / S), Math.floor(anne.position.z / S)] });
+window.__mimic = () => logScene && logScene.mimicProbe();
+window.__dbg = { story, followCam, C, camera, anne, A, level, logScene, footPlay, scene: () => !!activeScene() };      // (tests)
+// She walked in from another area (?go): the address forgets how she arrived, so that reloading the page is "Continue"
+// on the spot she had reached, not a second arrival at the entrance.
+if (qp.has('go')) { const q1 = new URLSearchParams(location.search); for (const k of ['at', 'dir', 'auto', 'go']) q1.delete(k); history.replaceState(null, '', '?' + q1.toString()); }
+addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });      // (back/forward must not bring back a page frozen mid-exit)
+window.__ready = true; console.log('READY');
+if (PERF && !qp.has('ls')) setTimeout(() => { window.__perfReport(); console.log('PERF done'); }, 1000 * +(qp.get('secs') || 8));
+if (qp.has('nails')) openLooks(startGame, 'feet');
+else if (qp.has('auto')) { startGame(); if (qp.has('yaw')) camYaw = +qp.get('yaw'); if (qp.has('dist')) camDist = +qp.get('dist');
+  if (qp.has('walk')) { keys.KeyW = true; if (qp.has('run')) keys.ShiftLeft = true; setTimeout(() => { keys.KeyW = false; keys.ShiftLeft = false; }, +qp.get('walk')); } }
+if (qp.has('log') && logScene) {            // test hook: stand at the log, interact, auto-advance N presses
+  const lc = tc(...LOG_AT); anne.position.set(lc.x, 0, lc.z + 1.3); heading = Math.PI; anne.rotation.y = heading; firstFrame = true;
+  const presses = +(qp.get('log') || 0), gap = +(qp.get('gap') || 700);
+  { console.log('LOG interact'); logScene.interact(); let n = 0;
+    const tap = (code) => { dispatchEvent(new KeyboardEvent('keydown', { code, key: code === 'Space' ? ' ' : code })); dispatchEvent(new KeyboardEvent('keyup', { code, key: code === 'Space' ? ' ' : code })); };
+    const iv = setInterval(() => { if (n++ >= presses) { clearInterval(iv); console.log('LOG presses done', n - 1); return; } tap('Space'); }, gap);
+  }
+}
+if (qp.has('face')) {                        // test view: ?face=laugh:0.8 shows one expression in close-up
+  const [nm, bl] = qp.get('face').split(':'); A.setExpression(nm, +(bl || 0));
+  window.__faceCam = () => { const h = anne.getObjectByName('Marker_Head').getWorldPosition(new THREE.Vector3());
+    const d = +(qp.get('fd') || 0.62), a = +(qp.get('fa') || 0.2);
+    camera.position.set(h.x + Math.sin(a) * d, h.y - 0.02 + +(qp.get('fy') || 0), h.z - Math.cos(a) * d); camera.lookAt(h.x, h.y - 0.01, h.z); };
+  setTimeout(() => console.log('FACE ready ' + nm), 2500);
+}
+if (qp.has('look')) {                        // test view: ?look=dx,dy,dz,tx,ty,tz puts the camera relative to her (&bare=1: shoes off, &expr=name:blush)
+  const v = qp.get('look').split(',').map(Number);
+  if (qp.has('bare')) A.setHeelsWorn(false);
+  if (qp.has('expr')) { const [nm, bl] = qp.get('expr').split(':'); A.setExpression(nm, +(bl || 0)); }
+  window.__faceCam = () => { const p = anne.position; camera.position.set(p.x + v[0], p.y + v[1], p.z + v[2]); camera.lookAt(p.x + v[3], p.y + v[4], p.z + v[5]); };
+  setTimeout(() => console.log('FACE ready look'), 2500);
+}
+if ((qp.has('ls') || qp.has('ms')) && logScene) {             // test driver (ported from logscene_test.html): ?ls=intro|stuck|tickle|minigame|escape|fail|complete
+  const TARGETS = { intro: { line: '3' }, choice: { choice: true }, blush: { line: '7' }, stuck: { line: '8' }, grab: { line: '15' }, tie: { line: 'T1' }, tied: { line: 'T2' }, laugh: { line: '17' }, tickle: { line: '18' }, minigame: { gauge: 1.2 },
+    escape: { line: 'E1', hit: true }, escape2: { line: 'E2', hit: true }, fail: { line: 'F1', hit: false }, complete: { line: 'C1', hit: true },
+    end: { ended: true, hit: true }, leave: { ended: true, leave: true }, repeat: { line: 'R2', hit: true, again: true },
+    dlick: { dlick: 2.0 }, own1: { own: 0.6, hit: true }, own2: { own: 1.9, hit: true }, ownf: { own: 0.6, hit: false }, cdone: { line: 'C2', hit: true },     // (10-03: D at her shoe; her shoes going back on)
+    wet1: { line: 'W1', hit: true, miss: 2 }, wet2: { line: 'W2', hit: true, miss: 2 }, wet3: { line: 'W3', hit: true, miss: 2, nobrush: true }, wet4: { line: 'W4', hit: true, miss: 2 } };      // (wet3: "Leave them be"; wet4: the brush, which goes by itself in tests)      // (miss: rounds lost first, so that D gets to her shoe)     // (10-03: what D did inside it: a word, the sole flash, one more)
+  // ?ms=<state>: the mimic-shoes scene
+  const MTARGETS = { mlook: { line: 'M2' }, mput1: { put: 0.75 }, mput2: { put: 2.0 }, msit: { line: 'M3' }, mtease: { line: 'M5' }, mside: { line: 'M6' }, mgame: { gauge: 1.2 }, mboth: { line: 'M8', hit: false }, mescape: { line: 'M9', hit: true }, mend: { ended: true, hit: true },
+    mown: { own: 0.6, hit: true }, mown2: { own: 1.9, hit: true }, mdone: { line: 'M10', hit: true } };
+  const target = qp.has('ms') ? MTARGETS[qp.get('ms')] : TARGETS[qp.get('ls')]; const SPEED = +(qp.get('speed') || 3);
+  const DWELL = { 10: 1.4, 11: 2.4, 12: 2.8, 15: 0.9, 16: 0.7 };
+  const lc = tc(...LOG_AT); anne.position.set(lc.x, 0, lc.z + 1.3); heading = Math.PI; anne.rotation.y = heading; firstFrame = true;
+  if (qp.has('ms')) { const mp = logScene.mimicPos(); anne.position.set(mp.x - 0.95, 0, mp.z + 0.3); }
+  let simT = 0, held = false, pressCd = 0, gaugeT = 0, keyI = 0, lastLine = '', lineT = 0, started = false, endedOnce = false, reInt = -1, leaveMoved = false, gN = 0, gWas = false;
+  const $$ = (q) => document.querySelector(q);
+  const press = (code) => { const key = code === 'Space' ? ' ' : code === 'Enter' ? 'Enter' : code.startsWith('Key') ? code.slice(3).toLowerCase() : code;
+    dispatchEvent(new KeyboardEvent('keydown', { code, key, bubbles: true })); dispatchEvent(new KeyboardEvent('keyup', { code, key, bubbles: true })); };
+  // &holdperf=N: time only the N seconds after the state is reached (the cost of that one shot)
+  const hold = (tag) => { held = true; const hp = +(qp.get('holdperf') || 0);
+    if (hp && PERF) { PERF.ft.length = 0; PERF.long.length = 0; PERF.upd = PERF.ren = PERF.n = 0; PERF.renMax = 0; }
+    setTimeout(() => { if (window.__perfReport) window.__perfReport(); console.log('HOLD reached: ' + tag); }, hp ? hp * 1000 : 1200); };
+  const drive = (dt) => {
+    if (!target || held) return;
+    simT += dt; pressCd -= dt;
+    if (!started) { if (simT > 0.3) { logScene.interact(); started = true; } return; }
+    if (!logScene.isActive()) {
+      if (target.ended && !endedOnce) { endedOnce = true; const p0 = anne.position.clone(); keys.KeyD = true;
+        setTimeout(() => { keys.KeyD = false; console.log(`ENDED moved=${anne.position.distanceTo(p0).toFixed(2)} rot=${anne.rotation.x.toFixed(2)},${anne.rotation.z.toFixed(2)} y=${anne.position.y.toFixed(3)} heels=${A.debug().heelsWorn} clip=${A.debug().exclusiveClip} hat=${A.debug().hat} prompt=${logScene.promptText()}`); hold('ended'); }, 1500); }
+      if (target.again && !endedOnce) { endedOnce = true; reInt = 1.0; }
+      if (reInt >= 0) { reInt -= dt; if (reInt < 0) logScene.interact(); }
+      return;
+    }
+    const d = $$('.ls-dlg'), dOn = d && d.classList.contains('ls-on'), done = d && d.dataset.done === '1';
+    const cOn = $$('.ls-choice') && $$('.ls-choice').classList.contains('ls-on'), g = $$('.ls-gauge'), gOn = g && g.classList.contains('ls-on');
+    if (target.put && logScene.putT() > target.put) return hold('put');
+    if (target.own && logScene.ownT() > target.own) return hold('own');
+    if (target.dlick && logScene.dLick() > target.dlick) return hold('dlick');
+    if (target.line && dOn && d.dataset.line === target.line && done) return hold('line ' + target.line);
+    if (target.choice && cOn) return hold('choice');
+    if (gOn && !gWas) gN++; gWas = !!gOn;
+    if (gOn) {
+      if (target.gauge) { gaugeT += dt; if (gaugeT > target.gauge) hold('gauge'); return; }
+      if (g.classList.contains('ls-hit') || g.classList.contains('ls-miss')) return;
+      const p = parseFloat($$('.ls-gmark').style.left) / 100, z0 = parseFloat($$('.ls-gzone').style.left) / 100, zw = parseFloat($$('.ls-gzone').style.width) / 100;
+      const inside = p > z0 + 0.015 && p < z0 + zw - 0.015, far = p < z0 - 0.12 || p > z0 + zw + 0.12;
+      if (pressCd <= 0 && (target.hit && gN > (target.miss || 0) ? inside : far)) { press('Space'); pressCd = 0.3; }
+      return;
+    }
+    if (cOn && pressCd <= 0) {
+      const brushQ = /Scrub/.test($$('.ls-choice').textContent || '');      // (the second choice of the scene: the fuzzy brush)
+      if ((brushQ ? target.nobrush : target.leave) && !leaveMoved) { press('ArrowDown'); leaveMoved = true; pressCd = 0.3; return; }
+      press('Enter'); pressCd = 0.3; return;
+    }
+    if (dOn) { if (d.dataset.line !== lastLine) { lastLine = d.dataset.line; lineT = 0; } lineT += dt; }
+    if (dOn && pressCd <= 0) { if (done && lineT < (DWELL[d.dataset.line] || 0)) return; press(['Space', 'Enter', 'KeyE'][keyI++ % 3]); pressCd = 0.22; }
+  };
+  if (qp.has('rt')) window.__rtDrive = drive;       // real-time: the driver runs inside the normal frame loop (for performance tests)
+  else {
+    window.__testTick = (dt) => { const n = held ? 1 : SPEED; for (let i = 0; i < n; i++) { const d = held && target && (target.put || target.own || target.dlick) ? 1e-4 : dt; drive(d); simClock += d; update(d, simClock); } };
+    const simLoop = () => { window.__testTick(1 / 60); setTimeout(simLoop, 16); }; simLoop();
+  }
+}
+if (qp.has('ev') && story) {                // test: ?ev=<event id> starts one of the story's events with her standing next to it
+  const ok = story.runEvent(qp.get('ev'), qp.has('at') ? null : (x, z) => free(x, z)); heading = anne.rotation.y; firstFrame = true; console.log('EV ' + qp.get('ev') + ' ' + ok);
+}
+if (qp.has('sim')) { const [k, n] = qp.get('sim').split(':'); keys[k] = true; for (let i = 0; i < +n; i++) update(1 / 30, i / 30);
+  console.log('SIM pos', anne.position.x.toFixed(2), anne.position.z.toFixed(2), 'tile', Math.floor(anne.position.x / S), Math.floor(anne.position.z / S)); }
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

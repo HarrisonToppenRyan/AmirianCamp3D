@@ -1,0 +1,261 @@
+{
+ "theta": 4.314396667080334,
+ "heel_height": 0.010000000000000002,
+ "foot_length": 0.21439831517636776,
+ "heel_y": 0.02100815437734127,
+ "toe_y": -0.1933901607990265,
+ "kind": "sandal",
+ "prop_size": [
+  0.0839,
+  0.2228,
+  0.1245
+ ],
+ "nearest_skin_mm": 0.43,
+ "styles": {
+  "sandal": {
+   "label": "Strappy sandals",
+   "heel": false,
+   "closed": false,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": null,
+   "prop_size": [
+    0.0839,
+    0.2228,
+    0.1245
+   ],
+   "nearest_skin_mm": 0.43,
+   "tris": 4052,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "flipflop": {
+   "label": "Flip-flops",
+   "heel": false,
+   "closed": false,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": null,
+   "prop_size": [
+    0.081,
+    0.2228,
+    0.0542
+   ],
+   "nearest_skin_mm": 0.05,
+   "tris": 2184,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "tstrap": {
+   "label": "T-strap sandals",
+   "heel": false,
+   "closed": false,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": null,
+   "prop_size": [
+    0.081,
+    0.2228,
+    0.1245
+   ],
+   "nearest_skin_mm": 0.02,
+   "tris": 2824,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "slide": {
+   "label": "Slides",
+   "heel": false,
+   "closed": false,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": null,
+   "prop_size": [
+    0.086,
+    0.2228,
+    0.0675
+   ],
+   "nearest_skin_mm": 0.63,
+   "tris": 2868,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "toeloop": {
+   "label": "Toe-post sandals",
+   "heel": false,
+   "closed": false,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": null,
+   "prop_size": [
+    0.0824,
+    0.2228,
+    0.0608
+   ],
+   "nearest_skin_mm": 0.14,
+   "tris": 2548,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "heels": {
+   "label": "Open-toe high heels",
+   "heel": true,
+   "closed": false,
+   "theta_worn": 28.807,
+   "stand": 0.13272,
+   "hide": null,
+   "prop_size": [
+    0.0837,
+    0.2116,
+    0.1768
+   ],
+   "nearest_skin_mm": 0.28,
+   "tris": 3482,
+   "dtheta": 24.493,
+   "lift": 0.05021
+  },
+  "pumps": {
+   "label": "Closed-toe high heels",
+   "heel": true,
+   "closed": true,
+   "theta_worn": 28.807,
+   "stand": 0.13272,
+   "hide": [
+    0.1323,
+    0.075
+   ],
+   "prop_size": [
+    0.0828,
+    0.2187,
+    0.1385
+   ],
+   "nearest_skin_mm": 0.26,
+   "tris": 11358,
+   "dtheta": 24.493,
+   "lift": 0.05021
+  },
+  "gladiator": {
+   "label": "Gladiator sandals",
+   "heel": false,
+   "closed": false,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": null,
+   "prop_size": [
+    0.0852,
+    0.2228,
+    0.1245
+   ],
+   "nearest_skin_mm": 0.53,
+   "tris": 5208,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "cross": {
+   "label": "Crossover slides",
+   "heel": false,
+   "closed": false,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": null,
+   "prop_size": [
+    0.0893,
+    0.2228,
+    0.0674
+   ],
+   "nearest_skin_mm": 0.81,
+   "tris": 3096,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "wedges": {
+   "label": "Wedge sandals",
+   "heel": true,
+   "closed": false,
+   "theta_worn": 28.807,
+   "stand": 0.13272,
+   "hide": null,
+   "prop_size": [
+    0.0846,
+    0.2116,
+    0.1768
+   ],
+   "nearest_skin_mm": 0.19,
+   "tris": 4000,
+   "dtheta": 24.493,
+   "lift": 0.05021
+  },
+  "flats": {
+   "label": "Ballet flats",
+   "heel": false,
+   "closed": true,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": [
+    0.1323,
+    0.075
+   ],
+   "prop_size": [
+    0.0828,
+    0.2296,
+    0.0695
+   ],
+   "nearest_skin_mm": 0.26,
+   "tris": 11120,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "mules": {
+   "label": "Mules",
+   "heel": false,
+   "closed": true,
+   "theta_worn": 4.314,
+   "stand": 0.08251,
+   "hide": [
+    0.1323,
+    0.075
+   ],
+   "prop_size": [
+    0.0837,
+    0.2296,
+    0.0651
+   ],
+   "nearest_skin_mm": 0.71,
+   "tris": 10976,
+   "dtheta": 0.0,
+   "lift": 0.0
+  },
+  "geta": {
+   "label": "Wooden geta",
+   "heel": false,
+   "closed": false,
+   "theta_worn": 4.314,
+   "stand": 0.12714,
+   "hide": null,
+   "prop_size": [
+    0.081,
+    0.2219,
+    0.0979
+   ],
+   "nearest_skin_mm": 0.0,
+   "tris": 2204,
+   "dtheta": 0.0,
+   "lift": 0.04463
+  }
+ },
+ "order": [
+  "sandal",
+  "flipflop",
+  "tstrap",
+  "slide",
+  "toeloop",
+  "heels",
+  "pumps",
+  "gladiator",
+  "cross",
+  "wedges",
+  "flats",
+  "mules",
+  "geta"
+ ]
+}

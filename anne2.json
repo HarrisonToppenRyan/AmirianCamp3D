@@ -1,0 +1,418 @@
+{
+ "height": 1.7,
+ "eyeHeight": 1.5782,
+ "thetaDeg": 4.314,
+ "heelHeight": 0.010000000000000002,
+ "clips": {
+  "Idle": 2.5,
+  "IdleLook": 7.0,
+  "IdleTiptoe": 8.0,
+  "IdleTiptoeR": 8.0,
+  "IdleCross": 8.0,
+  "IdleCrossR": 8.0,
+  "IdleTiptoeHi": 8.0,
+  "IdleTiptoeRHi": 8.0,
+  "IdleCrossHi": 8.0,
+  "IdleCrossRHi": 8.0,
+  "IdleBare": 2.5,
+  "Walk": 2.0,
+  "Jog": 1.5,
+  "Run": 1.3333,
+  "WalkBare": 2.0,
+  "JogBare": 1.5,
+  "RunBare": 1.3333,
+  "Stomp": 1.0,
+  "StompBare": 1.0,
+  "StuckIdle": 2.4583,
+  "StuckStruggle": 1.0,
+  "StuckTickled": 0.5,
+  "SitIdle": 2.4583,
+  "MimSit": 2.4583,
+  "SitTickle": 1.0,
+  "SitBoth": 1.0,
+  "SitPutOn": 3.125,
+  "MimPutOn": 3.125,
+  "Startle": 0.6667,
+  "Point": 1.625,
+  "Cast": 0.7917,
+  "CampSit": 2.4583,
+  "CampSleep": 2.9583,
+  "CampWake": 1.75,
+  "CampLie": 1.75,
+  "VineHeld": 1.0,
+  "VineHeldShod": 1.3333,
+  "SitFlat": 1.1667,
+  "HeldBack": 1.0,
+  "HeldProne": 1.0,
+  "Hogtie": 1.0,
+  "HogtieTickled": 1.5,
+  "KneelSit": 1.0,
+  "ChairBound": 2.5,
+  "ChairBare": 2.5,
+  "ChairTickled": 0.5,
+  "LaughFit": 0.6667,
+  "StuckFlat": 2.4583,
+  "StuckFlatTickled": 2.0,
+  "StuckFlatStrain": 1.0833,
+  "HoleIdle": 2.5,
+  "HoleKick": 1.0,
+  "HoleTease": 1.5,
+  "HoleTickled": 2.0,
+  "HoleBound": 2.0,
+  "HoleKickout": 0.8333,
+  "ThiefIdle": 2.5,
+  "PumpkinSeat": 2.5,
+  "PumpkinHeld": 1.5,
+  "PumpkinHigh": 1.5,
+  "IvyLegUp": 1.5,
+  "IvyLegUpTickled": 1.5,
+  "IvyWorship": 2.5,
+  "MycHeld": 1.5,
+  "MycHeldOut": 1.5,
+  "AlrHeld": 1.75,
+  "AlrHeldTickled": 1.5,
+  "NailShow": 3.0,
+  "FeatherSit": 2.4583,
+  "FeatherTickle": 0.5,
+  "FeatherTickleHard": 0.3333
+ },
+ "stride": {
+  "Walk": 1.52,
+  "Jog": 1.8,
+  "Run": 2.933
+ },
+ "gaitSpeed": {
+  "Walk": 1.52,
+  "Jog": 2.4,
+  "Run": 4.399
+ },
+ "expressions": [
+  "mouth-open",
+  "mouth-corner-puller",
+  "mouth-elevation",
+  "mouth-depression",
+  "mouth-retraction",
+  "mouth-parling",
+  "mouth-pursing",
+  "mouth-compression",
+  "mouth-upward-retraction",
+  "eye-left-closure",
+  "eye-right-closure",
+  "eye-left-slit",
+  "eye-right-slit",
+  "eye-left-opened-up",
+  "eye-right-opened-up",
+  "eyebrows-left-inner-up",
+  "eyebrows-right-inner-up",
+  "eyebrows-left-up",
+  "eyebrows-right-up",
+  "eyebrows-left-down",
+  "eyebrows-right-down",
+  "nose-left-elevation",
+  "nose-right-elevation",
+  "eye-left-closure-mid",
+  "eye-right-closure-mid"
+ ],
+ "eyelidCloseDeg": {
+  "left": 28,
+  "right": 28
+ },
+ "headScale": 1.113,
+ "stuckPose": {
+  "hipAboveBelly": 0.1016,
+  "headNorthOfHip": 0.4797,
+  "headAboveBelly": 0.5339
+ },
+ "eyes": {
+  "left": {
+   "centre": [
+    0.03644,
+    -0.11004,
+    1.57892
+   ],
+   "half": [
+    0.02295,
+    0.02295,
+    0.02295
+   ]
+  },
+  "right": {
+   "centre": [
+    -0.03644,
+    -0.11004,
+    1.57892
+   ],
+   "half": [
+    0.02295,
+    0.02295,
+    0.02295
+   ]
+  }
+ },
+ "stuck": {
+  "hipY": 0.1856,
+  "hipNorth": 0.05,
+  "faceY": 0.5979,
+  "faceNorth": 0.1297
+ },
+ "triangles": {
+  "Anne_Head": 33264,
+  "Anne_Skin": 45456,
+  "Anne_Feet": 69888,
+  "Anne_Eyes": 740,
+  "Anne_Teeth": 3636,
+  "Anne_Tongue": 448,
+  "Anne_Hair": 13972,
+  "Anne_Brows": 304,
+  "Anne_Lashes": 128,
+  "Anne_Suit": 13080,
+  "Anne_SuitTrim": 4080,
+  "Anne_Choker": 576,
+  "Anne_Hat": 3756,
+  "Anne_HatBand": 288,
+  "Anne_Heel_L": 4052,
+  "Anne_Heel_R": 4052,
+  "Anne_Apron": 660,
+  "Anne_ApronTrim": 624,
+  "Anne_Belt": 522,
+  "Anne_Cape": 1904,
+  "Anne_CapeTrim": 1152,
+  "Anne_Cuffs": 560,
+  "Anne_CuffTrim": 672,
+  "Anne_Hair_afro": 10688,
+  "Anne_Hair_bob": 10050,
+  "Anne_Hair_braids": 14456,
+  "Anne_Hair_bun": 4260,
+  "Anne_Hair_curls": 10174,
+  "Anne_Hair_pixie": 6668,
+  "Anne_Hair_ponytail": 8478,
+  "Anne_Hair_twintails": 11004,
+  "Anne_Hair_wavy": 13972,
+  "Anne_Panels": 792,
+  "Anne_PanelsTrim": 1128,
+  "Anne_Shoe_cross_L": 3096,
+  "Anne_Shoe_cross_R": 3096,
+  "Anne_Shoe_flats_L": 11120,
+  "Anne_Shoe_flats_R": 11120,
+  "Anne_Shoe_flipflop_L": 2184,
+  "Anne_Shoe_flipflop_R": 2184,
+  "Anne_Shoe_geta_L": 2204,
+  "Anne_Shoe_geta_R": 2204,
+  "Anne_Shoe_gladiator_L": 5208,
+  "Anne_Shoe_gladiator_R": 5208,
+  "Anne_Shoe_heels_L": 3482,
+  "Anne_Shoe_heels_R": 3482,
+  "Anne_Shoe_mules_L": 10976,
+  "Anne_Shoe_mules_R": 10976,
+  "Anne_Shoe_pumps_L": 11358,
+  "Anne_Shoe_pumps_R": 11358,
+  "Anne_Shoe_slide_L": 2868,
+  "Anne_Shoe_slide_R": 2868,
+  "Anne_Shoe_toeloop_L": 2548,
+  "Anne_Shoe_toeloop_R": 2548,
+  "Anne_Shoe_tstrap_L": 2824,
+  "Anne_Shoe_tstrap_R": 2824,
+  "Anne_Shoe_wedges_L": 4000,
+  "Anne_Shoe_wedges_R": 4000,
+  "Anne_Skirt": 2688,
+  "Anne_SkirtLong": 3808,
+  "Anne_SkirtLongTrim": 1344,
+  "Anne_SkirtMaxi": 7168,
+  "Anne_SkirtMaxiTrim": 1344,
+  "Anne_SkirtPencil": 3808,
+  "Anne_SkirtPencilTrim": 1344,
+  "Anne_SkirtTrim": 1344,
+  "Anne_SkirtTube": 2464,
+  "Anne_SkirtTubeTrim": 1344,
+  "Anne_Tutu": 2464,
+  "Anne_TutuTrim": 1344
+ },
+ "hair": {
+  "order": [
+   "long",
+   "wavy",
+   "curls",
+   "bob",
+   "pixie",
+   "ponytail",
+   "twintails",
+   "braids",
+   "bun",
+   "afro"
+  ],
+  "styles": {
+   "long": {
+    "label": "Long and straight",
+    "hat": true
+   },
+   "wavy": {
+    "label": "Long waves",
+    "hat": true
+   },
+   "curls": {
+    "label": "Curls",
+    "hat": true
+   },
+   "bob": {
+    "label": "Bob",
+    "hat": true
+   },
+   "pixie": {
+    "label": "Short crop",
+    "hat": true
+   },
+   "ponytail": {
+    "label": "Ponytail",
+    "hat": true
+   },
+   "twintails": {
+    "label": "Twin tails",
+    "hat": true
+   },
+   "braids": {
+    "label": "Braids",
+    "hat": true
+   },
+   "bun": {
+    "label": "Bun",
+    "hat": true
+   },
+   "afro": {
+    "label": "Afro",
+    "hat": false
+   }
+  }
+ },
+ "shoes": {
+  "order": [
+   "sandal",
+   "flipflop",
+   "tstrap",
+   "slide",
+   "toeloop",
+   "heels",
+   "pumps",
+   "gladiator",
+   "cross",
+   "wedges",
+   "flats",
+   "mules",
+   "geta"
+  ],
+  "styles": {
+   "sandal": {
+    "label": "Strappy sandals",
+    "heel": false,
+    "closed": false,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": null
+   },
+   "flipflop": {
+    "label": "Flip-flops",
+    "heel": false,
+    "closed": false,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": null
+   },
+   "tstrap": {
+    "label": "T-strap sandals",
+    "heel": false,
+    "closed": false,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": null
+   },
+   "slide": {
+    "label": "Slides",
+    "heel": false,
+    "closed": false,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": null
+   },
+   "toeloop": {
+    "label": "Toe-post sandals",
+    "heel": false,
+    "closed": false,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": null
+   },
+   "heels": {
+    "label": "Open-toe high heels",
+    "heel": true,
+    "closed": false,
+    "dthetaDeg": 24.493,
+    "lift": 0.05021,
+    "hide": null
+   },
+   "pumps": {
+    "label": "Closed-toe high heels",
+    "heel": true,
+    "closed": true,
+    "dthetaDeg": 24.493,
+    "lift": 0.05021,
+    "hide": [
+     0.1323,
+     0.075
+    ]
+   },
+   "gladiator": {
+    "label": "Gladiator sandals",
+    "heel": false,
+    "closed": false,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": null
+   },
+   "cross": {
+    "label": "Crossover slides",
+    "heel": false,
+    "closed": false,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": null
+   },
+   "wedges": {
+    "label": "Wedge sandals",
+    "heel": true,
+    "closed": false,
+    "dthetaDeg": 24.493,
+    "lift": 0.05021,
+    "hide": null
+   },
+   "flats": {
+    "label": "Ballet flats",
+    "heel": false,
+    "closed": true,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": [
+     0.1323,
+     0.075
+    ]
+   },
+   "mules": {
+    "label": "Mules",
+    "heel": false,
+    "closed": true,
+    "dthetaDeg": 0.0,
+    "lift": 0.0,
+    "hide": [
+     0.1323,
+     0.075
+    ]
+   },
+   "geta": {
+    "label": "Wooden geta",
+    "heel": false,
+    "closed": false,
+    "dthetaDeg": 0.0,
+    "lift": 0.04463,
+    "hide": null
+   }
+  }
+ }
+}
