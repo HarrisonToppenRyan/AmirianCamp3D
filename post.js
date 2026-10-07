@@ -443,6 +443,7 @@ export function createPost({ THREE, renderer, scene, camera, qp, ultra = false }
     render, setSize, frameTime, warm, setCloseUp,
     // an area's look, like the 2D's "tint screen": gains for red, green and blue, how grey (0..1), and the exposure
     setGrade(r = 1, g = 1, b = 1, grey = 0, expo = 1) { finalUniforms.uGrade.value.set(r, g, b, grey); finalUniforms.uExpo.value = expo; },
+    grade: () => [...finalUniforms.uGrade.value.toArray(), finalUniforms.uExpo.value],      // (10-07: the title screen puts the area's grade back when it ends)
     setFocus(point, strength = 1) { focus = pinnedFocus || point || null; focusK = strength; },   // strength > 1: a shallower depth of field
     portrait,
     setInset(o) {                                    // the corner inset (see drawInset); null: off

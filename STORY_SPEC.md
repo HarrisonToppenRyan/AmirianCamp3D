@@ -25,6 +25,7 @@ of the source are left out or reworded; nothing sexual is shown or said.
 | `story_library.js` | (10-02) the opening: the haunted Secret Library, Lilith, the chair, the Kiss of the Succubus, Amaymon's ball, the memory cards (area `library`, an indoor set) |
 | `story_edge.js`, `story_road.js` | (10-02) the Chapter 1 epilogue: Boudicca's ambush and interrogation, the theft, "Meanwhile...", the road, the end card |
 | `boudicca.js`, `lilith.js`, `scylla.js` | (10-02) more second figures on thief.js's footing (their LOOK, what they wear on their bones, their scene) |
+| `title.js` | (10-07) the title screen, after the 2D's: a ledge far outside the map with one of the 2D's backdrops behind it (`title/`), Anne in a look made up at random (`looks.random()`; nothing kept) doing her standing foot poses, one of the other figures beside her, the logo and menu on a dark band; it runs in the game's place until a menu choice ends it and puts everything back. Only on a plain visit (no test or arrival flags; `?notitle` skips it) |
 | `ties.js` | the cords of the tied-up captures: ankles, big toes, a peg; wrists and the hog line (Boudicca); themes per captor |
 
 ## Progress (the 2D game's GAME_PROGRESS)

@@ -518,6 +518,28 @@ export function createLooks(env) {
     // (tests) set fields as a click would: set({ skin: '#6f4326', outfit: 'summer' }); heritage(id) as its pill does
     set: (patch) => { L = Object.assign(L, patch); save(); apply(); markAll(); },
     heritage: (id, mix) => { if (!HERITAGE[id]) return; const H = herLook(id, mix || L.mix); L = withLook({ heritage: id, mix: okMix(mix || L.mix), skin: H.skin, eyes: H.eyes, hair: H.hair, lids: H.lids, shape: Object.assign({}, H.face) }); save(); apply(); markAll(); },
+    // (10-07, the title screen) a look made up at random: a heritage (or two, half and half) with its face, a skin tone near
+    // that heritage's or (now and then) any other, a species, eyes, hair, a hairstyle, a ready-made face on top with a little of
+    // every slider, her build, one of the outfits. Nothing is kept: apply(look) tries it on, apply() puts her own back.
+    random: (rnd = Math.random) => {
+      const pick = (a) => a[Math.floor(rnd() * a.length)], jit = (k) => (rnd() * 2 - 1) * k;
+      const heritage = pick(HERITAGE_ORDER), mix = [pick(BASES), pick(BASES)]; if (mix[0] === mix[1]) mix[1] = BASES[(BASES.indexOf(mix[0]) + 1 + Math.floor(rnd() * (BASES.length - 1))) % BASES.length];
+      const H = herLook(heritage, mix), species = rnd() < 0.5 ? 'human' : pick(SPECIES_ORDER.slice(1)), Sp = SPECIES[species][1];
+      const si = SKINS.findIndex((x) => x[1] === H.skin);
+      let skin = rnd() < 0.2 || si < 0 ? pick(SKINS)[1] : SKINS[Math.max(0, Math.min(SKINS.length - 1, si + Math.round(jit(2.4))))][1];
+      if (Sp.skin) skin = rnd() < 0.7 ? Sp.skin : pick(SKINS2)[1];
+      const eyes = Sp.eyes && rnd() < 0.6 ? Sp.eyes : rnd() < 0.6 ? H.eyes : pick(EYES)[1];
+      const hair = Sp.hair && rnd() < 0.6 ? Sp.hair : rnd() < 0.5 ? H.hair : pick(HAIRS)[1];
+      const shape = Object.assign({}, H.face), preset = pick(FACE_PRESETS)[2];
+      for (const k in preset) shape[k] = (shape[k] || 0) + preset[k] * 0.7;
+      for (const k in SHAPE_UI) shape[k] = +Math.max(-1, Math.min(1, (shape[k] || 0) + jit(0.25))).toFixed(3);
+      const hs = hairStyles();
+      return { name: L.name, heritage, mix, species, skin, eyes, hair, hairStyle: hs.length ? pick(hs).id : '', lids: rnd() < 0.6 ? H.lids : pick(Object.keys(LIDS)), shape,
+        outfit: pick(OUTFIT_ORDER), suit: rnd() < 0.2 ? pick(SUIT_COLS)[1] : '', hat: null, legwear: null, body: { w: +(1 + jit(0.07)).toFixed(3), h: +(1 + jit(0.045)).toFixed(3) } };
+    },
+    // what a look is, in a few words (the title screen's caption)
+    describe: (look) => ({ heritage: look.heritage === 'mixed' ? mixName(look.mix) : HERITAGE[look.heritage][0], species: (SPECIES[look.species] || SPECIES.human)[0], outfit: (OUTFITS[look.outfit] || OUTFITS.witch)[0],
+      skin: nameOf([...SKINS, ...SKINS2], look.skin, ''), hair: nameOf(HAIRS, look.hair, 'Auburn'), fantasy: SKINS2.some((x) => x[1] === look.skin) }),
     mixLook, mixName, show, lists: { SKINS, SKINS2, EYES, HAIRS, HERITAGE_ORDER, BASES, OUTFIT_ORDER, SPECIES_ORDER, OUTFITS, SPECIES },
   };
 }

@@ -1113,3 +1113,49 @@ BEFORE the forest (he listed the forest first: tell him).
 - NOT checked: Safari itself; a game played from Chapter 1's end to Chapter 2's end in ONE sitting by hand (each scene
   and each exit was run on its own); sound (the tests run muted: the new music and effects are files that load).
 
+
+
+# Batch 26 (2026-10-07). VER 331+
+## The request, verbatim
+"add in a title screen just like in the 2D game, have the tital screen radomly rotate between Anne and the other characters
+featured, have anne doing a little foot pose like she does in the 2d version but randomly assing her her outfit, shoes,
+design, race, and skin color."
+
+## What the 2D's title is (read from the game: System.json, KunMainThemes, img/titles1 + img/titles2)
+- A backdrop picked at random from seven sea-and-dark-tower paintings (five winter ones from 1 to 28 December), and a
+  foreground picked at random from eight: the logo "AMIRIAN Curse" on a dark band down the middle, Anne to its left and one
+  other to its right (Lilith in four of them, with Anne flying past, one shoe off and a bare foot out; four others
+  standing). The menu at the foot of the band. Music Theme4.
+
+## What was built (`title.js`, `title/`, `theme4.mp3`)
+- When: a plain visit (the address has none of the test or arrival flags; the rule is an inline script in index.html's head,
+  `window.__TITLE`). Not when walking in from another area, not in any test with `auto`, not straight after "New game"
+  (that page opens on her look, `sessionStorage amirian3d.newgame`). `?notitle`: the old card.
+- Where: a group at (-400, 0, -400), far outside every map, turned so that the area's own sun is to the upper left. A
+  sandstone ledge (flat where they stand), boulders and tufts along its far edge, the 2D's backdrop on a plane 40 m behind
+  (unlit, not fogged; sized to cover the picture for any window shape). The camera: 30 degrees, level, swaying a little.
+- The area's night and colour grade are set aside while it shows (the dungeon, the library) and put back when it ends; the
+  story's own overlays and the HUD are hidden by `html.title-on`.
+- Anne: `looks.random()` (new: a heritage or a half-and-half mix with its face, a skin tone near it or now and then any,
+  half the time a species, eyes, hair, hairstyle, a ready-made face with a little of every slider, her build, one of the 50
+  outfits), `looks.apply(look)` (nothing saved), and from index.html's lists a pair of shoes, their colour, a sole, her
+  toenails. Her poses: IdleTiptoe, IdleCrossR, IdleTiptoeR, IdleCross in turn (the heel up out of her shoe, the shoe left
+  hanging from her toes, her toes wiggling), turned SIDE-ON for each with the foot that comes up nearest the picture
+  (studied from four angles: from the front the heel is hidden behind her other leg), facing the picture between two. A
+  gown is gathered to her knees while a foot shows.
+- Beside her: Lilith (hovering), Boudicca, Aurelia, Camellia, the Dryad, Elora, Mia: thief.js / cast2.js twins, made when
+  first shown. After two of her poses (26 s at the latest) the picture fades and all three change (never the same partner
+  or backdrop twice running).
+- The page: the logo in Amarante (title/Amarante.woff2, OFL), the band, the menu (Continue / New game / Customize / Shoes
+  and toenails; up, down, Enter), a caption under each figure. A tall window: no band, the logo over the top, the menu over
+  the foot.
+- Ending it (`title.go(fn)`, in the click itself so that sound may start): the picture goes dark at once, her own look,
+  shoes, place and the area's light come back, `fn` runs (start, or the look panel), the game fades in.
+- Music: the 2D's Theme4 (theme4.mp3) while the title shows, if the player has the music on (M).
+- December: the winter backdrops, snow on the ledge, dusk light (`?twinter` to see it).
+- Engine: `story_common.js common(S)` is kept on S (the title shares the area's); `post.grade()`; `looks.random()`,
+  `looks.describe()`.
+
+## Left out
+- The 2D's flying pose (Anne on her staff, a shoe falling): the model has no such clip; her standing foot poses are used.
+- Alraune, Scylla and the creatures as partners (their own models need their scenes' props).

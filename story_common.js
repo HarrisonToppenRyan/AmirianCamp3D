@@ -4,6 +4,7 @@ const V = new URL(import.meta.url).search;      // this file's own ?v=..., passe
 const { createActors } = await import('./actors.js' + V);
 
 export function common(S) {
+  if (S._common) return S._common;      // (10-07: one set for the page: an area's script and the title screen share it)
   const { THREE, scene, anne, A, V3 } = S;
   const K = createActors(THREE);
   S.actors.push({ update(dt, t) { K.time.value = t; } });
@@ -339,6 +340,6 @@ export function common(S) {
     return stop;
   }
 
-  return { K, am, amAt: (p) => { amSpot = p; }, amShow, sparks, headPos, headFwd, sole, checkpoint, toCheckpoint, lookTalk, lookLines, lookSay, lookRemarks, soleTint,
+  return S._common = { K, am, amAt: (p) => { amSpot = p; }, amShow, sparks, headPos, headFwd, sole, checkpoint, toCheckpoint, lookTalk, lookLines, lookSay, lookRemarks, soleTint,
     feet, readFeet, snapSoles: () => { snapFeet = true; }, along, orient, memoryCards, introSkip };
 }

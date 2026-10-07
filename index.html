@@ -36,9 +36,44 @@
   #nails .nl-row i:hover { transform: scale(1.18); }
   #nails .nl-row i.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent), 0 2px 6px rgba(0,0,0,.6), inset 0 6px 8px rgba(255,255,255,.25); }
   #nails .btn { padding: 9px 26px; border: 1px solid var(--accent); border-radius: 4px; background: var(--purple); color: var(--ink); font-size: 16px; cursor: pointer; }
+  /* (10-07) the title screen (title.js): the 2D game's lay-out. While the page loads (html.title-load) the logo over the dark
+     card; then (html.title-on) the 3D title picture shows, with a dark band down its middle: the logo at its top, the menu at its foot */
+  @font-face { font-family: Amarante; src: url(title/Amarante.woff2) format('woff2'); font-display: swap; }
+  #tband { display: contents; }
+  #tlogo { display: none; flex-direction: column; align-items: center; white-space: nowrap; pointer-events: none; user-select: none; }
+  #tlogo span { display: block; font: 400 clamp(76px, 8.6vw, 122px)/.92 Amarante, Georgia, serif; letter-spacing: .01em; padding: 0 .06em;
+                background: linear-gradient(180deg, #ffffff 10%, #dff6ff 40%, #a5e2f6 58%, #cdb6ff 100%); -webkit-background-clip: text; background-clip: text; color: transparent;
+                filter: drop-shadow(0 0 16px rgba(138, 92, 240, .95)) drop-shadow(0 2px 2px rgba(0, 0, 0, .55)); }
+  #tlogo b { display: block; align-self: flex-start; margin: -.16em 0 0 .1em; font: 400 clamp(32px, 3.6vw, 51px)/1 Amarante, Georgia, serif; font-variant: small-caps; color: #fff;
+             filter: drop-shadow(0 0 10px rgba(138, 92, 240, .95)) drop-shadow(0 2px 2px rgba(0, 0, 0, .55)); }
+  #tlogo i { display: block; margin-top: 10px; font: italic 13px Georgia, serif; letter-spacing: .08em; opacity: .7; }
+  html.title-load #tband, html.title-on #tband { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  html.title-load #tlogo, html.title-on #tlogo { display: flex; }
+  html.title-load #start h1, html.title-load #start p, html.title-on #start h1, html.title-on #start p, html.title-on #bar, html.title-on #status { display: none; }
+  html.title-load #start .btn { display: none !important; }
+  html.title-load #start { cursor: default; }
+  html.title-on #start { background: none; cursor: default; padding: 0; flex-direction: row; align-items: stretch; justify-content: center; pointer-events: none; }
+  html.title-on #tband { pointer-events: auto; width: clamp(250px, 27vw, 380px); box-sizing: border-box; padding: 6vh 14px 4.5vh; gap: 9px;
+                         background: linear-gradient(180deg, rgba(4, 12, 28, .82) 0%, rgba(6, 26, 36, .56) 40%, rgba(4, 14, 24, .7) 68%, rgba(2, 8, 16, .9) 100%); box-shadow: 0 0 46px rgba(0, 0, 0, .4); }
+  html.title-on #start .btn { margin-top: 0; width: min(230px, 100%); box-sizing: border-box; padding: 9px 12px; font-size: 17px; cursor: pointer; background: rgba(40, 20, 72, .78); border-color: rgba(201, 162, 74, .55); transition: background .12s, transform .12s; }
+  html.title-on #start #go { margin-top: auto; }
+  html.title-on #start .btn.tsel { background: #5a2d91 !important; border-color: #f0cf6a; color: #fff; transform: scale(1.04); box-shadow: 0 0 14px rgba(138, 92, 240, .55); }
+  html.title-on #title, html.title-on #hud, html.title-on #prompt, html.title-on #lookbtn, html.title-on .st-fade, html.title-on .st-night, html.title-on .st-goal, html.title-on .st-hud,
+  html.title-on .st-toasts, html.title-on .ls-hud, html.title-on .ls-fade, html.title-on .ls-flash { display: none !important; }
+  @media (max-height: 560px) { html.title-on #tband { padding-top: 2vh; } #tlogo i { display: none; } }
+  /* a tall window: no band (it would hide them both): the logo over the top of the picture, the menu over its foot */
+  @media (max-aspect-ratio: 9/10) { html.title-on #tband { width: 100%; box-shadow: none; background: linear-gradient(180deg, rgba(4, 12, 28, .86) 0%, rgba(4, 12, 28, .5) 22%, rgba(4, 12, 28, 0) 34%, rgba(4, 12, 28, 0) 66%, rgba(2, 8, 16, .88) 80%); }
+    #tlogo span { font-size: clamp(56px, 19vw, 122px); } #tlogo b { font-size: clamp(24px, 8vw, 51px); } }
   #prompt { position: fixed; left: 50%; bottom: 58px; transform: translateX(-50%); display: none; padding: 7px 16px; border: 1px solid var(--accent);
             border-radius: 5px; background: rgba(28, 14, 48, .82); font-size: 15px; letter-spacing: .03em; cursor: pointer; white-space: nowrap; z-index: 3; }
 </style>
+<script>
+// (10-07) the title screen shows on a plain visit (no test or arrival flags in the address; not straight after "New game")
+(() => { const q = new URLSearchParams(location.search), OK = ['level', 'fresh', 'title', 'quality', 'noaa', 'nowarm', 'lk', 'shoe', 'shoecol', 'solecol', 'nail', 'tcast', 'tbg', 'tseed', 'thold', 'tpose', 'twinter'];
+  let fresh = false; try { fresh = sessionStorage.getItem('amirian3d.newgame') === '1'; sessionStorage.removeItem('amirian3d.newgame'); } catch (e) { /* private mode */ }
+  window.__NEWGAME = fresh; window.__TITLE = !fresh && !q.has('notitle') && [...q.keys()].every((k) => OK.includes(k));
+  if (window.__TITLE) document.documentElement.classList.add('title-load'); })();
+</script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
@@ -48,12 +83,15 @@
 </head>
 <body>
 <div id="start">
-  <h1>Forest Camp</h1>
-  <p>A small 3D walk-around of the opening campsite, built from the game's own map layout.</p>
-  <div id="bar"><i></i></div>
-  <div id="status">Loading Anne&hellip;</div>
-  <div class="btn" id="go" style="display:none">Click to enter the camp</div>
-  <div id="err"></div>
+  <div id="tband">
+    <div id="tlogo"><span>AMIRIAN</span><b>Curse</b><i>a fan-made 3D recreation</i></div>
+    <h1>Forest Camp</h1>
+    <p>A small 3D walk-around of the opening campsite, built from the game's own map layout.</p>
+    <div id="bar"><i></i></div>
+    <div id="status">Loading Anne&hellip;</div>
+    <div class="btn" id="go" style="display:none">Click to enter the camp</div>
+    <div id="err"></div>
+  </div>
 </div>
 <div id="nails"><div class="nl-title">Anne's look</div>
   <div class="nl-h">Shoes</div><div id="nl-styles"></div>
@@ -74,7 +112,7 @@ const showErr = (e) => { console.error(e); $('err').textContent = String(e && e.
 window.addEventListener('error', (e) => showErr(e.error || e.message));
 const qp = new URLSearchParams(location.search);
 
-const VER = '330';                                  // bump when assets or modules change so browsers don't serve stale copies
+const VER = '340';                                  // bump when assets or modules change so browsers don't serve stale copies
 // which area: the camp, the Forest Pond north of it, or the North Forest south of it
 // [level file, title, line on the loading card, music]
 const AREAS = { camp: ['level.json', 'Forest Camp', '', 'forest3.mp3'], pond: ['level_pond.json', 'Forest Pond', 'The path north of the camp opens onto the pond.', 'forest3.mp3'],
@@ -165,9 +203,10 @@ const store = (k, v) => { try { if (v === undefined) return sessionStorage.getIt
 const musicOn = (v) => { try { if (v === undefined) return localStorage.getItem('amirian3d.music') === '1'; localStorage.setItem('amirian3d.music', v ? '1' : '0'); } catch (e) { /* private mode */ } return !!v; };
 let hushed = false;
 const musicLabel = () => { const el = document.getElementById('musState'); if (el) el.textContent = musicOn() ? 'on' : 'off'; };
-const playMusic = () => { if (!musicOn() || hushed) return; bgm.volume = .45; const t = store('musicOf') === AREAS[LV][3] ? +store('musicT') : 0; if (t > 0 && bgm.currentTime < 0.5) { try { bgm.currentTime = t; } catch (e) { /* not seekable yet */ } } bgm.play().then(() => store('music', '1')).catch(() => {}); };
+const playMusic = () => { if (!musicOn() || hushed || window.__titleOn) return; bgm.volume = .45; const t = store('musicOf') === AREAS[LV][3] ? +store('musicT') : 0; if (t > 0 && bgm.currentTime < 0.5) { try { bgm.currentTime = t; } catch (e) { /* not seekable yet */ } } bgm.play().then(() => store('music', '1')).catch(() => {}); };
 const quiet = (on) => { hushed = !!on; if (on) bgm.pause(); else playMusic(); };
 addEventListener('keydown', (e) => { keys[e.code] = true; if (e.code === 'KeyM' && !e.repeat) { musicOn(!musicOn()); musicLabel(); if (musicOn()) playMusic(); else { bgm.pause(); store('music', '0'); if (window.__music2) window.__music2.pause(); } }
+  if (window.__titleOn && e.code !== 'KeyU') return;      // (10-07: the title screen has its own keys, title.js)
   if (e.code === 'KeyF' && !e.repeat && window.__ready) footCamKey();      // (10-03: not while the page is still loading: their state is not set up yet)
   if (e.code === 'KeyL' && !e.repeat && window.__ready) openLook();
   if (e.code === 'KeyN' && !e.repeat && window.__map) window.__map.toggle();
@@ -249,16 +288,16 @@ const prompting = () => { if (activeScene() || pinCam) return null;      // (10-
    for (const sc of [story, logScene]) if (sc && sc.promptText()) return sc; return null; };
 const canInteract = () => !!prompting();
 addEventListener('keydown', (e) => {
-  if (e.repeat || !['KeyE', 'Space', 'Enter'].includes(e.code) || !canInteract()) return;
+  if (e.repeat || window.__titleOn || !['KeyE', 'Space', 'Enter'].includes(e.code) || !canInteract()) return;
   e.preventDefault(); setTimeout(() => { const sc = prompting(); if (sc) { if (footPlay) footPlay.stop(); sc.interact(); } }, 0);   // after this event, so the scene doesn't see it (10-03: a sole that is up for the player comes down first, or its release a frame later would undo the scene's first clip)
 });
 promptEl.addEventListener('click', () => { const sc = prompting(); if (sc) { if (footPlay) footPlay.stop(); sc.interact(); } });
 renderer.domElement.addEventListener('pointerdown', (e) => { if (footPlay && footPlay.wantsPointer()) return; dragging = true; lx = e.clientX; ly = e.clientY; renderer.domElement.setPointerCapture(e.pointerId); });
 renderer.domElement.addEventListener('pointerup', () => { dragging = false; });
 renderer.domElement.addEventListener('pointermove', (e) => {
-  if (!dragging) return; camManual = gameT; camTurned = true; camYaw -= (e.clientX - lx) * 0.006; camPitch = THREE.MathUtils.clamp(camPitch + (e.clientY - ly) * 0.004, 0.08, 1.2); lx = e.clientX; ly = e.clientY;
+  if (!dragging || window.__titleOn) return; camManual = gameT; camTurned = true; camYaw -= (e.clientX - lx) * 0.006; camPitch = THREE.MathUtils.clamp(camPitch + (e.clientY - ly) * 0.004, 0.08, 1.2); lx = e.clientX; ly = e.clientY;
 });
-renderer.domElement.addEventListener('wheel', (e) => { camManual = gameT; camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.004, 2.5, 14); }, { passive: true });
+renderer.domElement.addEventListener('wheel', (e) => { if (window.__titleOn) return; camManual = gameT; camDist = THREE.MathUtils.clamp(camDist + e.deltaY * 0.004, 2.5, 14); }, { passive: true });
 
 // collision against the map's passability grid and the log
 const R = 0.3, FREE_OFF = [[-R, -R], [R, -R], [-R, R], [R, R], [0, 0]];
@@ -671,7 +710,7 @@ if (PERF) {
 // ?cam=px,py,pz,lx,ly,lz pins the camera (for screenshots of a fixed view)
 const FIXCAM = qp.has('cam') ? qp.get('cam').split(',').map(Number) : null;
 pinCam = null;                                   // [px, py, pz, lx, ly, lz]: the toenail chooser holds the camera on her feet (declared with the scene state above)
-let lastFrameT = 0;
+let lastFrameT = 0, title = null;
 function frame(now) {
   const dt = Math.min(clock.getDelta(), 0.05);
   if (lastFrameT) post.frameTime(now - lastFrameT); lastFrameT = now;
@@ -679,9 +718,10 @@ function frame(now) {
   if (PERF) { const np = renderer.info.programs.length; if (PERF.np !== undefined && np > PERF.np) for (let i = PERF.np; i < np; i++) { const pr = renderer.info.programs[i]; console.log('NEWPROG at ' + PERF.label() + ' t=' + Math.round(p0) + ' name=' + pr.name + ' key=' + String(pr.cacheKey).slice(0, 160)); } PERF.np = np; }
   if (PERF) { if (PERF.last) { const ft = p0 - PERF.last; PERF.ft.push(ft); if (ft > 34 && PERF.ft.length > 30) PERF.long.push([Math.round(p0), Math.round(ft), PERF.label(), renderer.info.programs.length, +(PERF.lu || 0).toFixed(1), +(PERF.lr || 0).toFixed(1)]); } PERF.last = p0; }
   if (window.__rtDrive) window.__rtDrive(dt);
-  if (!window.__testTick) update(dt, clock.elapsedTime);
+  if (title && title.on) title.update(dt, clock.elapsedTime);      // (10-07: the title screen runs in the game's place until a menu choice ends it)
+  else if (!window.__testTick) update(dt, clock.elapsedTime);
   if (window.__faceCam) window.__faceCam();
-  if (FIXCAM || pinCam) { const fc = pinCam || FIXCAM; camera.position.set(fc[0], fc[1], fc[2]); camera.lookAt(fc[3], fc[4], fc[5]); if (pinCam) anne.visible = true; }
+  if ((FIXCAM || pinCam) && !(title && title.on)) { const fc = pinCam || FIXCAM; camera.position.set(fc[0], fc[1], fc[2]); camera.lookAt(fc[3], fc[4], fc[5]); if (pinCam) anne.visible = true; }
   const p1 = PERF ? performance.now() : 0;
   post.render(dt);
   if (PERF) { if (qp.get('perf') === '2') { const gl = renderer.getContext(); gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, PERF.px || (PERF.px = new Uint8Array(4))); }   // perf=2: reading a pixel back waits for the GPU, so renMs includes GPU time
@@ -695,11 +735,12 @@ $('status').innerHTML = 'Warming up&hellip;';
 if (!qp.has('nowarm')) await warmUp();
 $('status').textContent = 'Ready.'; $('go').style.display = '';
 let started = false;
-const startGame = () => { if (started) return; started = true; amb.start(); musicLabel(); $('start').style.display = 'none'; if (window.__lookBtn) window.__lookBtn.style.display = ''; if (window.__map) window.__map.started(); playMusic(); if (story) story.arrive(qp.has('dir') ? 'exit' : 'start'); };
+const startGame = () => { if (started) return; if (title && title.on) title.leave(); started = true; amb.start(); musicLabel(); $('start').style.display = 'none'; if (window.__lookBtn) window.__lookBtn.style.display = ''; if (window.__map) window.__map.started(); playMusic(); if (story) story.arrive(qp.has('dir') ? 'exit' : 'start'); };
 if (story && story.hasSave() && !qp.has('dir')) {      // a saved game: carry on, or start again
   $('go').textContent = 'Continue';
   const fresh = document.createElement('div'); fresh.className = 'btn'; fresh.textContent = 'New game'; fresh.style.background = '#2a2a3a';
-  fresh.addEventListener('click', (e) => { e.stopPropagation(); story.reset(); if (location.search) location.search = ''; else location.reload(); });
+  fresh.addEventListener('click', (e) => { e.stopPropagation(); story.reset(); try { sessionStorage.setItem('amirian3d.newgame', '1'); } catch (err) { /* private mode */ }      // (10-07: the new game's page skips the title and opens on her look)
+    if (location.search) location.search = ''; else location.reload(); });
   $('go').after(fresh);
 } else if (story && LV === 'camp' && !qp.has('dir')) $('go').textContent = 'Begin';
 // ---------- the colour of her toenails ----------
@@ -870,14 +911,19 @@ window.__nails = { open: () => openLooks(() => {}, 'feet'), list: NAILS, get col
 {                                                // the start screen (10-04): a new game begins with the look panel (her name, heritage, skin, face, eyes, hair, outfit, feet);
   const isNew = !(story && story.hasSave() && !qp.has('dir'));      // "Continue" goes straight on; one button offers the panel either way, and L does during play
   const b = document.createElement('div'); b.className = 'btn'; b.id = 'lookstart'; b.textContent = 'Customize ' + heroName(); b.style.background = '#2a2a3a'; b.style.fontSize = '14px';
-  b.addEventListener('click', (e) => { e.stopPropagation(); if (looks) looks.goLabel(isNew ? 'Begin' : 'Continue'); openLooks(startGame, 'name'); });
+  const viaTitle = (fn) => (title && title.on ? title.go(fn) : fn());      // (10-07: from the title screen: it ends first, and she is herself again)
+  b.addEventListener('click', (e) => { e.stopPropagation(); viaTitle(() => { if (looks) looks.goLabel(isNew ? 'Begin' : 'Continue'); openLooks(startGame, 'name'); }); });
   { const all = $('start').querySelectorAll('.btn'); (all.length ? all[all.length - 1] : $('go')).after(b); }
   // ...and her shoes and toenails are offered by name here too (the same panel, opened on its Feet tab)
   const f = document.createElement('div'); f.className = 'btn'; f.id = 'feetstart'; f.textContent = 'Shoes and toenails'; f.style.background = '#2a2a3a'; f.style.fontSize = '14px';
-  f.addEventListener('click', (e) => { e.stopPropagation(); if (looks) looks.goLabel(isNew ? 'Begin' : 'Continue'); openLooks(startGame, 'feet'); });
+  f.addEventListener('click', (e) => { e.stopPropagation(); viaTitle(() => { if (looks) looks.goLabel(isNew ? 'Begin' : 'Continue'); openLooks(startGame, 'feet'); }); });
   b.after(f);
   const testing = ['auto', 'ev', 'ls', 'ms', 'log'].some((k) => qp.has(k));      // (test flags start a scene of their own: no panel in its way)
-  $('start').addEventListener('click', () => { if (isNew && !testing && !activeScene() && looks) { looks.goLabel('Begin'); openLooks(startGame, 'name'); } else startGame(); }, { once: true });
+  const begin = () => { if (isNew && !testing && !activeScene() && looks) { looks.goLabel('Begin'); openLooks(startGame, 'name'); } else startGame(); };
+  // (10-07) with the title screen up only its menu starts the game (a click on the picture does nothing); without it, a click anywhere on the card, as before
+  if (window.__TITLE) $('go').addEventListener('click', (e) => { e.stopPropagation(); viaTitle(begin); });
+  else $('start').addEventListener('click', begin, { once: true });
+  if (window.__NEWGAME && isNew && !testing && looks) begin();      // ("New game" was chosen on the title: straight to her look)
 }
 if (qp.has('mem')) {                         // ?mem: how many bytes of vertex data and textures the scene holds (CPU copies = the same again)
   const seen = new Set(); let geo = 0, inst = 0, morph = 0, tex = 0; const by = {};
@@ -918,11 +964,24 @@ if (qp.has('gaitprobe')) {                        // do her feet slide? Speed of
 window.__setCam = (yaw, pitch, dist) => { camYaw = yaw; if (pitch !== undefined) camPitch = pitch; if (dist !== undefined) camDist = dist; camManual = gameT; firstFrame = true; };
 window.__cam = () => ({ len: +armLen.toFixed(2), yaw: +camYaw.toFixed(3), pitch: +camPitch.toFixed(3), dist: +camDist.toFixed(2), cam: camera.position.toArray().map((v) => +v.toFixed(2)), anne: anne.position.toArray().map((v) => +v.toFixed(2)), heading: +heading.toFixed(3), tile: [Math.floor(anne.position.x / S), Math.floor(anne.position.z / S)] });
 window.__mimic = () => logScene && logScene.mimicProbe();
-window.__dbg = { story, followCam, C, camera, anne, A, level, logScene, footPlay, scene: () => !!activeScene() };      // (tests)
+window.__dbg = { story, followCam, C, camera, anne, A, level, logScene, footPlay, post, scene: () => !!activeScene() };      // (tests)
 // She walked in from another area (?go): the address forgets how she arrived, so that reloading the page is "Continue"
 // on the spot she had reached, not a second arrival at the entrance.
 if (qp.has('go')) { const q1 = new URLSearchParams(location.search); for (const k of ['at', 'dir', 'auto', 'go']) q1.delete(k); history.replaceState(null, '', '?' + q1.toString()); }
 addEventListener('pageshow', (e) => { if (e.persisted) location.reload(); });      // (back/forward must not bring back a page frozen mid-exit)
+// ---------- (10-07, as he asked) the title screen: title.js. Anne in a look made up at random beside one of the others, the 2D's
+// backdrop, logo and menu. It runs in the game's place (frame) until a menu choice ends it and puts everything back. ----------
+if (window.__TITLE && story && looks && A.makeTwin) {
+  try {
+    const { createTitle } = await import('./title.js?v=' + VER);
+    title = await createTitle({ THREE, scene, camera, A, anne, post, story, looks, qp, night: C.night, sun: (worldParts.find((p) => p.sun) || {}).sun || null, heroName, musicOn,
+      shoes: { styles: STYLES, cols: SHOE_COLS, soles: SOLE_COLS, nails: NAILS, tryOn: (st, col, sole, nail) => { wear(st || shoeStyle, col, sole); if (A.setNailColor) A.setNailColor(nail); }, restore: () => { wear(); if (A.setNailColor) A.setNailColor(nailColor); } },
+      world: (dt, t, focus) => { shadowFocus.copy(focus); updateWorld(dt, t); },
+      onLeave: () => { anne.rotation.set(0, heading, 0); vel = 0; firstFrame = true; camManual = gameT; } });
+    await title.start();
+    window.__title = title;
+  } catch (e) { showErr(e); if (title && title.on) title.leave(); title = null; document.documentElement.classList.remove('title-load', 'title-on'); }
+} else document.documentElement.classList.remove('title-load');
 window.__ready = true; console.log('READY');
 if (PERF && !qp.has('ls')) setTimeout(() => { window.__perfReport(); console.log('PERF done'); }, 1000 * +(qp.get('secs') || 8));
 if (qp.has('nails')) openLooks(startGame, 'feet');
