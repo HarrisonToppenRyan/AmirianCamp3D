@@ -2,3 +2,9 @@
 .DS_Store
 __pycache__/
 *.pyc
+
+# Kept on the computer only (reference pictures and a texture the game does not use).
+/Shoe examples/
+/Idle animnation base/
+/tex/anne_skin.png
+/refs/anne_sprite_sheet.png
