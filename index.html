@@ -112,7 +112,7 @@ const showErr = (e) => { console.error(e); $('err').textContent = String(e && e.
 window.addEventListener('error', (e) => showErr(e.error || e.message));
 const qp = new URLSearchParams(location.search);
 
-const VER = '340';                                  // bump when assets or modules change so browsers don't serve stale copies
+const VER = '355';                                  // bump when assets or modules change so browsers don't serve stale copies
 // which area: the camp, the Forest Pond north of it, or the North Forest south of it
 // [level file, title, line on the loading card, music]
 const AREAS = { camp: ['level.json', 'Forest Camp', '', 'forest3.mp3'], pond: ['level_pond.json', 'Forest Pond', 'The path north of the camp opens onto the pond.', 'forest3.mp3'],
@@ -170,13 +170,19 @@ const BRIDGE = new Set((level.objects && level.objects.bridge || []).map(([x, y]
 // ?only=sky,terrain loads just those world modules (for looking at one module on its own)
 const ONLY = qp.has('only') ? qp.get('only').split(',') : null;
 const worldParts = [];
-for (const [file, fn] of [['sky', 'buildSky'], ['terrain', 'buildTerrain'], ['foliage', 'buildFoliage'], ['props', 'buildProps'], ...(GLADE ? [['pond', 'buildPond']] : [])]) {
+for (const [file, fn] of [['sky', 'buildSky'], ['terrain', 'buildTerrain'], ...(level.levels ? [['ledges', 'buildLedges']] : []), ['foliage', 'buildFoliage'], ['props', 'buildProps'], ...(GLADE ? [['pond', 'buildPond']] : [])]) {
   if (ONLY && file !== 'sky' && !ONLY.includes(file)) continue;
   if (level.interior && file !== 'sky') continue;                        // (an indoor set: the story builds the room; the sky gives the lights)
   try { const mod = await import(`./world/${file}.js?v=${VER}`); worldParts.push(mod[fn](C) || {}); }
   catch (e) { showErr(e); }
 }
 C.flushInst();
+// (10-12) raised ground (ledges climbed to by a vine): "level frames", world/frames.js. All the world just built goes into
+// the low ground's group; what the area's story stands on a ledge goes into the ledge's (after its setup, below). Nothing
+// at all in a level without ledges.
+const { createFrames } = await import('./world/frames.js?v=' + VER);
+const frames = createFrames({ THREE, scene, C });
+frames.takeWorld();
 const shadowFocus = new THREE.Vector3();
 function updateWorld(dt, t) { const flat = (logScene && logScene.grassFlat()) || (story && story.grassFlat()) || (footCam ? footFlat : null) || null; for (const p of worldParts) if (p.update) p.update(dt, t, shadowFocus, flat); }
 
@@ -302,9 +308,25 @@ renderer.domElement.addEventListener('wheel', (e) => { if (window.__titleOn) ret
 // collision against the map's passability grid and the log
 const R = 0.3, FREE_OFF = [[-R, -R], [R, -R], [-R, R], [R, R], [0, 0]];
 const obstacleSets = [];        // each scene module's list of round obstacles { x, z, r } (they change as vines are cleared)
+// (10-12) raised ground: she walks on the tiles of the level she stands on (C.frame()), keeps KEEP off every tile of the
+// other one (the rock face from below, the edge from above), and no step takes her across: only a climb does (setLevel).
+// (KEEP: the rock stands up to 0.20 m out of the tile's edge, world/ledges.js, and her body is some 0.2 m round.)
+// A round obstacle blocks the level it stands on (story.js gives it `lv`).
+const LEDGES = frames.on, KEEP = 0.42, lvAt = C.levelAt, walkL = LEDGES ? (tx, tz) => walkAt(tx, tz) && lvAt(tx, tz) === C.frame() : walkAt;
+const onLv = (o) => o.lv === undefined || !LEDGES || o.lv === C.frame();
+const offLevel = (x, z) => {                     // how far a point is from the nearest tile of the OTHER level (0: on one; 9: none beside it)
+  const tx = Math.floor(x / S), tz = Math.floor(z / S), f = C.frame(); if (lvAt(tx, tz) !== f) return 0;
+  let best = 9;
+  for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+    if ((!dx && !dz) || lvAt(tx + dx, tz + dz) === f) continue;
+    const x0 = (tx + dx) * S, z0 = (tz + dz) * S;
+    best = Math.min(best, Math.hypot(Math.max(x0 - x, 0, x - (x0 + S)), Math.max(z0 - z, 0, z - (z0 + S))));
+  }
+  return best;
+};
 const free = (wx, wz) => {
-  for (const o of FREE_OFF) if (!walkAt(Math.floor((wx + o[0]) / S), Math.floor((wz + o[1]) / S))) return false;
-  for (const set of obstacleSets) for (const o of set) if (Math.hypot(wx - o.x, wz - o.z) < o.r + R) return false;
+  for (const o of FREE_OFF) if (!walkL(Math.floor((wx + o[0]) / S), Math.floor((wz + o[1]) / S))) return false;
+  for (const set of obstacleSets) for (const o of set) if (onLv(o) && Math.hypot(wx - o.x, wz - o.z) < o.r + R) return false;
   return true;
 };
 // Walking is more forgiving than `free` (which scenes use to find a clear spot to stand her on), so that she can NEVER be
@@ -316,23 +338,57 @@ const OUT = 0.15;
 // ground slopes down under the water (world/terrain.js: 0 at the land's edge, 0.35 m lower a tile out). Not at the camp's stream.
 const OUT_W = GLADE ? 0.45 : OUT, wetAt = (x, z) => GLADE && C.tileAt(Math.floor(x / S), Math.floor(z / S)) === '~';
 const outOfBounds = (x, z) => {                 // how far a point lies from the nearest walkable tile (0: on one)
-  const tx = Math.floor(x / S), tz = Math.floor(z / S); if (walkAt(tx, tz)) return 0;
+  const tx = Math.floor(x / S), tz = Math.floor(z / S); if (walkL(tx, tz)) return 0;
   let best = 9;
   for (let dz = -2; dz <= 2; dz++) for (let dx = -2; dx <= 2; dx++) {
-    if (!walkAt(tx + dx, tz + dz)) continue;
+    if (!walkL(tx + dx, tz + dz)) continue;
     const x0 = (tx + dx) * S, z0 = (tz + dz) * S, ex = Math.max(x0 - x, 0, x - (x0 + S)), ez = Math.max(z0 - z, 0, z - (z0 + S));
     best = Math.min(best, Math.hypot(ex, ez));
   }
   return best;
 };
 const blocked = (x, z) => {                     // 0: she may stand here; otherwise how deep in trouble the spot is (metres)
-  let b = Math.max(0, outOfBounds(x, z) - (wetAt(x, z) ? OUT_W : OUT));
-  for (const set of obstacleSets) for (const o of set) { const d = Math.hypot(x - o.x, z - o.z); if (d < o.r + R) b += o.r + R - d; }
+  const oob = outOfBounds(x, z);
+  let b = Math.max(0, oob - (wetAt(x, z) ? OUT_W : OUT));
+  if (LEDGES) { const off = offLevel(x, z); if (off < KEEP) b += KEEP - off + Math.min(oob, OUT); }      // (it grows all the way in, so there is always a way out)
+  for (const set of obstacleSets) for (const o of set) { if (!onLv(o)) continue; const d = Math.hypot(x - o.x, z - o.z); if (d < o.r + R) b += o.r + R - d; }
   return b;
 };
+// a spot for her on her own level: `p` itself if it is clear of the other level, else the nearest ground of hers (story.js place)
+function keepOn(p) {
+  if (offLevel(p.x, p.z) >= KEEP) return false;
+  for (let r = 0.2; r <= 3.21; r += 0.2) for (let i = 0; i < 16; i++) {
+    const a = i / 16 * Math.PI * 2, x = p.x + Math.cos(a) * r, z = p.z + Math.sin(a) * r;
+    if (offLevel(x, z) >= KEEP && walkL(Math.floor(x / S), Math.floor(z / S))) { p.x = x; p.z = z; return true; }
+  }
+  return false;
+}
+// how far she may go from (x0, z0) along (ux, uz), `dist` at most, before she comes too near the other level (a scripted hop)
+function reachOnLevel(x0, z0, ux, uz, dist) {
+  if (offLevel(x0, z0) < KEEP) return dist;
+  let s = 0; while (s + 0.05 <= dist && offLevel(x0 + ux * (s + 0.05), z0 + uz * (s + 0.05)) >= KEEP) s += 0.05;
+  return s + 0.05 > dist ? dist : s;
+}
+// She is on level `lv` now (0 the low ground, 1 a ledge): the world's two groups move, and she and every point the cameras
+// keep move with them, all at once, so the picture does not change. A climb calls it at the top of the rock face; a script
+// that puts her somewhere on the other level (a checkpoint, a saved game) calls it with keepY (she is at y = 0 there already).
+let camReady = false;
+function setLevel(lv, o = {}) {
+  const dy = frames.set(lv); if (!dy) return 0;
+  if (!o.keepY) anne.position.y += dy;
+  if (story) story.shiftCam(dy);
+  if (camReady) { camera.position.y += dy; look.y += dy; fcPos.y += dy; fcLook.y += dy; fcSnap = true; if (pinCam) { pinCam[1] += dy; pinCam[4] += dy; } if (FIXCAM) { FIXCAM[1] += dy; FIXCAM[4] += dy; } if (o.cut) firstFrame = true; }
+  const Cm = story && story.S._common; if (Cm && Cm.snapSoles) Cm.snapSoles();
+  return dy;
+}
+const LED = LEDGES ? { on: true, H: C.LEDGE_H, level: () => C.frame(), levelAt: (x, z) => lvAt(Math.floor(x / S), Math.floor(z / S)), frameH: () => C.frameH(), setLevel, keepOn, reach: reachOnLevel,
+  settle: (o, lv) => frames.settle(o, lv), carry: (o, lv) => frames.carry(o, lv), free: (o) => frames.free(o), levelOf: (o) => frames.levelOf(o), climbs: (C.ledges && C.ledges.climbs) || [] } : null;
 const canStep = (x0, z0, x1, z1) => { const b1 = blocked(x1, z1); if (b1 <= 0) return true; const b0 = blocked(x0, z0); return b0 > 0 && b1 < b0 - 1e-6; };
 function unstick(dt) {                          // on blocked ground she is moved out of it, the shortest way, without a key being pressed
   const p = anne.position, b0 = blocked(p.x, p.z); if (b0 <= 0) return;
+  if (LEDGES && outOfBounds(p.x, p.z) >= 9) {      // (10-12: put on walkable ground of the other level, nothing of her own in reach: she IS on that level)
+    const tx = Math.floor(p.x / S), tz = Math.floor(p.z / S); if (walkAt(tx, tz) && lvAt(tx, tz) !== C.frame()) { setLevel(lvAt(tx, tz), { keepY: true, cut: true }); return; }
+  }
   const step = Math.min(b0 + 0.02, 2.2 * dt); let bx = 0, bz = 0, bb = b0;
   for (let i = 0; i < 16; i++) { const a = i / 16 * Math.PI * 2, x = p.x + Math.cos(a) * step, z = p.z + Math.sin(a) * step, b = blocked(x, z); if (b < bb - 1e-6) { bb = b; bx = x - p.x; bz = z - p.z; } }
   if (bb < b0) { p.x += bx; p.z += bz; return; }
@@ -368,7 +424,7 @@ try {
     camPlace: (lookAt, yaw, pitch, dist, out) => followCam.place(lookAt, yaw, pitch, dist, out),
     camRoom: (lookAt, yaw, pitch, dist) => followCam.room(lookAt, yaw, pitch, dist),
     camFree: (p, pad) => followCam.free(p, pad), camSight: (a, b, pad, stop) => followCam.sight(a, b, pad, stop), bushes: C.bushes || [],
-    go: (to, at, dir, extra) => goLevel(to, at, dir, extra), onEnd: () => sceneEnded(false),
+    go: (to, at, dir, extra) => goLevel(to, at, dir, extra), onEnd: () => sceneEnded(false), ledges: LED,
     busy: () => !!(logScene && logScene.isActive()) });             // (the log scenes run outside the story engine: no saving where she stands in the middle of one)
 } catch (e) { showErr(e); }
 // (10-03, as he asked) playing with her soles: the fuzzy-brush clean-up after a capture, and the foot cam's side bar of tools
@@ -436,6 +492,7 @@ if (LOG_AT) try {
     onCounts: (h, c) => { if (story) story.S.counts(h, c); }, onFlag: (k, v) => { if (story) story.S.flag(k, v); },
     onEnd: () => sceneEnded(true) });
   obstacleSets.push(logScene.obstacles());
+  if (frames.on) frames.settle(scene.getObjectByName('LS_Root'), 0);      // (10-12: the log and its kit stand on the low ground)
 } catch (e) { showErr(e); }
 
 // ---------- changing area, and the looping forest ----------
@@ -486,7 +543,9 @@ if (story) try {
   // (10-02) a scene's own track plays whenever the music is on (M), even while the area's music is hushed; null stops it
   const music = (file) => { if (file) { if (!musicOn()) return; if (!music2.src.endsWith(file + '?v=' + VER)) music2.src = file + '?v=' + VER; bgm.pause(); music2.currentTime = 0; music2.play().catch(() => {}); } else { if (!music2.paused) music2.pause(); if (!hushed && musicOn()) playMusic(); } };
   window.__music2 = music2;
-  await content.setup(story.S, { C, tc, walkAt, heightAt, logScene, story, VER, post, music, quiet });
+  const mark0 = frames.mark();
+  await content.setup(story.S, { C, tc, walkAt, heightAt, logScene, story, VER, post, music, quiet, frames, ledges: LED });
+  frames.settleNew(mark0);                         // (10-12: what the area stood in the map goes with the ground it stands on)
 } catch (e) { showErr(e); }
 
 // ---------- loop ----------
@@ -616,7 +675,7 @@ function footCamera(dt) {
   fcW.set(p.x + fx * V[0] + fz * V[1], p.y + V[2], p.z + fz * V[0] - fx * V[1]); fcL.set(p.x + fx * V[3], p.y + V[4], p.z + fz * V[3]);
   const pg = fp && fp.camGoal();      // (10-03: a sole is up for the player's tools: the camera goes to it)
   if (pg) { fcW.copy(pg.p); fcL.copy(pg.l); }
-  fcW.y = Math.max(fcW.y, heightAt(fcW.x, fcW.z) + 0.05);
+  fcW.y = Math.max(fcW.y, Math.min(0, heightAt(fcW.x, fcW.z)) + 0.05);      // (10-12: not lifted onto a ledge it stands beside)
   // (10-03, later: the tools now play by themselves and footplay.js directs the picture, its Motion Reel Kit way: its camera
   // is taken as it is, every frame: hard cuts on its bar lines, its own slow push inside a shot; back out of it: a cut too)
   const direct = !!(pg && pg.direct); if (direct !== fcDirect) { fcDirect = direct; fcSnap = true; }
@@ -731,6 +790,9 @@ function frame(now) {
 }
 addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); post.setSize(innerWidth, innerHeight); });
 
+camReady = true;
+if (LEDGES) { const lv0 = lvAt(Math.floor(anne.position.x / S), Math.floor(anne.position.z / S)); if (lv0) setLevel(lv0, { keepY: true, cut: true }); }      // (10-12: a game saved on a ledge)
+window.__frames = frames; window.__setLevel = setLevel;
 $('status').innerHTML = 'Warming up&hellip;';
 if (!qp.has('nowarm')) await warmUp();
 $('status').textContent = 'Ready.'; $('go').style.display = '';
@@ -880,7 +942,8 @@ function openLook() {
   const base = document.createElement('canvas'); base.width = cv.width; base.height = cv.height; const b = base.getContext('2d');
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const t = C.tileAt(x, y), wk = walkAt(x, y);
-    b.fillStyle = wk ? (BRIDGE.has(x + ',' + y) ? '#9a6a3c' : '#c9b48a') : t === '~' ? '#2f6f8f' : t === 'W' ? '#7fb6d0' : '#1f3a1c';
+    const lv = lvAt(x, y);                           // (10-12: a ledge's top is drawn lighter)
+    b.fillStyle = wk ? (BRIDGE.has(x + ',' + y) ? '#9a6a3c' : lv ? '#ecdfb4' : '#c9b48a') : t === '~' ? '#2f6f8f' : t === 'W' ? '#7fb6d0' : lv ? '#3a5a30' : '#1f3a1c';
     b.fillRect(x * PX, y * PX, PX, PX);
   }
   for (const wr of level.wraps || []) {                 // the edges that run on round to the other side: a bright notch

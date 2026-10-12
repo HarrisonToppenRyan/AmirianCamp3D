@@ -3,10 +3,13 @@
 (The pond has its own, older generator: tools/make_level.py. This one reads passability per direction.)
 
 Terrain letters: g grass, d dirt (also plank bridges: a causeway), # forest, | trunk wall, ~ water, r rock (cliff faces
-and, in the forest, the plateaus that are only reached by climbing in the 2D game). The 3D levels have one ground
-height, so cliffs become rock banks. Walkable = what the 2D game lets her reach on foot from the entrance (its
-per-direction passability, flood-filled round the looping map; see FOREST below)."""
-import json, collections, sys
+and other ground she cannot reach). Cliffs become rock banks, except (10-12) the three ledges that she climbs to by a
+vine in the 2D game: those are raised ground (tools/ledges.py: `levels`, `ledgeH`, `climbs`). Walkable = what the 2D
+game lets her reach on foot from the entrance (its per-direction passability, flood-filled round the looping map; see
+FOREST below), and the tops of the three ledges."""
+import json, collections, sys, os
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import ledges
 W = '/Users/harrisontoppenryan/Downloads/Vids/AmirianCurseGame/www/data/'
 which = 'forest'
 MAP = {'pond': 2, 'forest': 3}[which]
@@ -51,7 +54,7 @@ for y in range(h):
         row.append(c); trow += 't' if kind(t1) == 39 and c == 'g' else '.'
     terrain.append(row); tall.append(trow)
 
-extra = {}
+extra = {}; ledge = set()
 if which == 'pond':
     for y in range(h):
         for x in range(w):
@@ -66,9 +69,21 @@ else:
     # and the lane to the Main Road) are joined. The 3D level keeps the loop: `wraps` lists the edge tiles she can
     # cross, and the game fades and carries her to the other side.
     seen = fill((56, 38))
-    for y in range(h):                           # passable ground she cannot reach (the ledges reached by climbing in 2D): rock
+    # (10-12) the ledges she climbs to by a vine (the 2D's events "ClimbUp" 11, 111, 20 and "BonusVineDown" 7, 69, 21:
+    # she stands on `base`, the vine hangs on the two tiles of rock face above it, and `top` is the ledge): the passable
+    # ground round the top of each climb that the entrance cannot reach, and the tiles of the face (ground, on top)
+    CLIMBS = [dict(id='A', base=[36, 50], top=[36, 47]), dict(id='B', base=[6, 16], top=[6, 13]), dict(id='C', base=[45, 28], top=[45, 25])]
+    for c in CLIMBS:
+        ledge |= {p for p in fill(tuple(c['top'])) if p not in seen and chk(p[0], p[1], 15)} | set(ledges.between(c['base'], c['top']))
+    for y in range(h):                           # other passable ground she cannot reach: rock
         for x in range(w):
-            if (x, y) not in seen and terrain[y][x] in 'gd' and chk(x, y, 15): terrain[y][x] = 'r'
+            if (x, y) not in seen and (x, y) not in ledge and terrain[y][x] in 'gd' and chk(x, y, 15): terrain[y][x] = 'r'
+    for (x, y) in ledge:
+        if terrain[y][x] not in 'gd': terrain[y][x] = 'g'
+    for c in CLIMBS:                             # no rock bank right beside a vine, at its foot or along it: she and the camera need the room
+        for (x, y) in [tuple(c['top'])] + ledges.between(c['base'], c['top']) + [tuple(c['base'])]:
+            for (dx, dy) in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                if terrain[y + dy][x + dx] == 'r': terrain[y + dy][x + dx] = 'g'
     wraps = []; outs = []
     for y in range(h):
         if (0, y) in seen and (w - 1, y) in seen and canpass(0, y, -1, 0): wraps.append(dict(edge='west', n=y)); wraps.append(dict(edge='east', n=y)); outs += [[y, 'west'], [y, 'east']]
@@ -80,8 +95,11 @@ else:
 bridge = []
 for (x, y) in sorted(seen):
     if terrain[y][x] == '~': terrain[y][x] = 'd'; bridge.append([x, y])     # a plank bridge: a causeway (pond.js lays the planks)
-walk = [''.join('1' if (x, y) in seen and terrain[y][x] in 'gd' else '0' for x in range(w)) for y in range(h)]
+walk = [''.join('1' if ((x, y) in seen or (x, y) in ledge) and terrain[y][x] in 'gd' else '0' for x in range(w)) for y in range(h)]
 terrain = [''.join(r) for r in terrain]
+if ledge:
+    raised = ledges.raise_around(terrain, walk, ledge, 1, low=set().union(*[ledges.beside(c['base'], c['top']) for c in CLIMBS]))
+    extra.update(levels=ledges.rows(raised, w, h), ledgeH=3.0, climbs=CLIMBS)
 
 obj = collections.defaultdict(list)
 IDS = {101: 'conifer', 120: 'tree', 622: 'willow', 546: 'sapling', 520: 'bush', 95: 'rock', 601: 'totem', 77: 'barrel', 92: 'stump', 179: 'stump', 87: 'fern', 91: 'fern'}
@@ -107,6 +125,10 @@ for e in m['events']:
 
 level = dict(name=which, glade=True, plateau=False, width=w, height=h, terrain=terrain, tallgrass=tall, walkable=walk, objects=dict(obj),
              pumpkins_event=[], events=events if which == 'forest' else [], **extra)
+if ledge: ledges.check(level)
 json.dump(level, open('level_%s.json' % which, 'w'))
-print('\n'.join(a + '   ' + b for a, b in zip(terrain, walk)) if w <= 40 else '\n'.join(''.join(('.' if walk[y][x] == '1' else terrain[y][x]) for x in range(w)) for y in range(h)))
+# (the map: '.' walkable; on raised ground 'L' walkable, and the other letters in capitals: '#' is '^', '|' is '!')
+UP = {'#': '^', '|': '!', 'g': 'G', 'r': 'R', 'd': 'D'}
+cell = lambda x, y: (('L' if walk[y][x] == '1' else UP.get(terrain[y][x], '?')) if ledge and extra['levels'][y][x] == '1' else '.' if walk[y][x] == '1' else terrain[y][x])
+print('\n'.join(a + '   ' + b for a, b in zip(terrain, walk)) if w <= 40 else '\n'.join('%3d ' % y + ''.join(cell(x, y) for x in range(w)) for y in range(h)))
 print({k: len(v) for k, v in obj.items()}, 'walkable', sum(r.count('1') for r in walk), 'letters', dict(collections.Counter(''.join(terrain))))

@@ -59,7 +59,7 @@ export function buildTerrain(c) {
   return { update(dt, t, focus, flat) {
     time.value = t; if (flat) { feet.value.copy(flat.p); press.value.set(flat.r, flat.k); } else { if (focus) feet.value.copy(focus); press.value.set(0.45, 0.55); }
     if (!c.camera) return;
-    if (!grass) grass = c.scene.children.filter((o) => o.isInstancedMesh && o.name.startsWith('inst:grass'));
+    if (!grass) { grass = []; c.scene.traverse((o) => { if (o.isInstancedMesh && o.name.startsWith('inst:grass')) grass.push(o); }); }      // (10-12: they may stand in a group, world/frames.js)
     const e = c.camera.position;
     for (const m of grass) { const b = m.boundingSphere; m.visible = Math.hypot(b.center.x - e.x, b.center.z - e.z) - b.radius < GRASS_FAR; }
   } };
@@ -382,8 +382,9 @@ function groundMesh(c, map, ground, brushes) {
 function meshBuilder() {
   const position = [], normal = [], color = [], spine = [], blade = [], index = [];
   const b = {
+    lift: 0,                                      // (10-12) added to every height: the ground of the place a piece is planted at (a ledge)
     vert(p, n, rgb, sway = 0, phase = 0, glow = 0, dir = UP, side = 0) {
-      position.push(p[0], p[1], p[2]); normal.push(n[0], n[1], n[2]); color.push(rgb[0], rgb[1], rgb[2]);
+      position.push(p[0], p[1] + b.lift, p[2]); normal.push(n[0], n[1], n[2]); color.push(rgb[0], rgb[1], rgb[2]);
       spine.push(dir[0], dir[1], dir[2]); blade.push(side, sway, phase, glow);
       return position.length / 3 - 1;
     },
@@ -608,6 +609,7 @@ coverWorld.xz += ( vec2( 0.82, 0.57 ) * ( 0.35 + 0.65 * wave ) * gust + vec2( -0
 // whatever bends in the wind also leans away from Anne's feet and is pressed down where she stands
 vec2 fromFeet = coverWorld.xz - uFeet.xz;
 float pressed = ( 1.0 - smoothstep( max( 0.1, uPress.x - 0.5 ), uPress.x, length( fromFeet ) ) ) * ( uPress.y > 0.9 ? 1.0 : min( aBlade.y * 8.0, 1.0 ) );     // a flattened patch takes the stiff plants down too
+pressed *= 1.0 - smoothstep( 0.6, 1.0, abs( coverWorld.y - uFeet.y ) );          // (10-12: not the grass on a ledge above her, nor below)
 coverWorld.xz += normalize( fromFeet + 1e-4 ) * 0.1 * pressed;
 coverWorld.y -= max( coverWorld.y - uFeet.y, 0.0 ) * uPress.y * pressed;
 // ribbons turn their face to the camera, and widen a little with distance so far grass stays full
@@ -682,7 +684,7 @@ function plantGrass(c, map, ground, material, limit) {
     const dry = rnd() < 0.07 ? [1.24, 1.1, 0.78] : [1, 1, 1];                         // now and then a clump the sun has yellowed
     const tint = ground.turfColour(wx, wz).map((v, k) => v * dry[k] * rr(0.9, 1.1));
     c.addInst(isTall ? 'grassTall' : 'grass', isTall ? tall : short, material,
-      c.mtx(wx, 0, wz, girth * rr(0.8, 1.25), height, girth * rr(0.8, 1.25), rnd() * Math.PI * 2), new THREE.Color(tint[0], tint[1], tint[2]), { shadow: false });
+      c.mtx(wx, c.buildHeightAt(wx, wz), wz, girth * rr(0.8, 1.25), height, girth * rr(0.8, 1.25), rnd() * Math.PI * 2), new THREE.Color(tint[0], tint[1], tint[2]), { shadow: false });
   }
 }
 
@@ -723,6 +725,7 @@ function stoneSpots(c, map) {
 function coverMesh(c, map, ground, material, limit, ferns, stones) {
   const { THREE, S, W, H, level, walkAt } = c, rng = c.rng(7031), { rnd, rr } = rng;
   const b = meshBuilder(), pick = (list) => list[Math.floor(rnd() * list.length)];
+  const at = (wx, wz) => { b.lift = c.buildHeightAt(wx, wz); };      // (10-12: what is planted next stands on the ground of this place)
   const fire = c.tc(...(level.campfire || [-60, -60])), scarecrow = c.tc(...(level.scarecrow || [-60, -60]));
   // may something this tall stand here? (walkable ground, clear of the log's tile, the fire and the scarecrow)
   const fits = (wx, wz, height) => walkAt(Math.floor(wx / S), Math.floor(wz / S)) && !c.inCliff(Math.floor(wx / S), Math.floor(wz / S)) && !map.onLogTile(wx, wz, 0.15)
@@ -740,7 +743,7 @@ function coverMesh(c, map, ground, material, limit, ferns, stones) {
   const flower = (kind, wx, wz, heights) => {
     const height = Math.min(rr(...heights), limit(wx, wz) - 0.06);          // the head stands a few cm above the stem's top
     if (height < 0.1 || !fits(wx, wz, height) || ground.earthEdge(wx, wz) > 0.4) return false;
-    addFlower(b, rng, wx, wz, height, KINDS[kind]);
+    at(wx, wz); addFlower(b, rng, wx, wz, height, KINDS[kind]);
     return true;
   };
   // a bed of flowers on each of the map's 'flowers' tiles
@@ -762,27 +765,28 @@ function coverMesh(c, map, ground, material, limit, ferns, stones) {
   scatter(46, (wx, wz) => {
     const edge = ground.earthEdge(wx, wz);
     if (!fits(wx, wz, 0.09) || edge > 0.46 || map.tall(wx, wz) > 0.5 || (edge < 0.25 && rnd() < 0.6)) return false;
-    addBroadleaf(b, rng, wx, wz, rr(0.09, 0.14), BROADLEAF);
+    at(wx, wz); addBroadleaf(b, rng, wx, wz, rr(0.09, 0.14), BROADLEAF);
     return true;
   });
   const CLOVER = { dark: lit('#448a45'), light: lit('#7ec567') };
   scatter(36, (wx, wz) => {
     if (!fits(wx, wz, 0.08) || ground.earthEdge(wx, wz) > 0.35 || map.tall(wx, wz) > 0.4) return false;
-    addClover(b, rng, wx, wz, CLOVER);
+    at(wx, wz); addClover(b, rng, wx, wz, CLOVER);
     return true;
   });
 
-  for (const f of ferns) addFern(b, rng, f.x, f.z, f.reach, f.top, { dark: lit('#458b49'), light: lit('#8dc665') });
+  for (const f of ferns) { at(f.x, f.z); addFern(b, rng, f.x, f.z, f.reach, f.top, { dark: lit('#458b49'), light: lit('#8dc665') }); }
 
   const AUTUMN = ['#caa454', '#bd7b3f', '#a05a39', '#d1bd6c', '#8a6e48'].map(lit);
   // fallen leaves, mostly near the trees
   scatter(90, (wx, wz) => {
     if (!fits(wx, wz, 0.03) || (map.open(wx, wz) > 0.9 && rnd() < 0.8)) return false;
-    addLeaf(b, rng, wx, wz, pick(AUTUMN));
+    at(wx, wz); addLeaf(b, rng, wx, wz, pick(AUTUMN));
     return true;
   });
   const STONE = ['#a89e8e', '#b3a891', '#9e978c', '#bcb09a'].map(lit);
-  for (const s of stones) addPebble(b, rng, s.x, s.z, s.radius, pick(STONE));
+  for (const s of stones) { at(s.x, s.z); addPebble(b, rng, s.x, s.z, s.radius, pick(STONE)); }
+  b.lift = 0;
 
   const mesh = new THREE.Mesh(b.geometry(THREE), material);
   mesh.receiveShadow = true; mesh.name = 'groundCover';

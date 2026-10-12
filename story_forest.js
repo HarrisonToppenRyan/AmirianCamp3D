@@ -9,6 +9,8 @@ const V = new URL(import.meta.url).search;      // this file's own ?v=..., passe
 const { common } = await import('./story_common.js' + V);
 const { createCaptures } = await import('./captures.js' + V);
 const { creatureKit } = await import('./creatures.js' + V);
+const { createClimbs } = await import('./climb.js' + V);
+const { createItems } = await import('./items.js' + V);
 
 export async function setup(S, env) {
   const { THREE, scene, anne, A, V3, TILE } = S, C = common(S), { K, am, sparks } = C;
@@ -136,11 +138,41 @@ export async function setup(S, env) {
   });
 
   // =====================================================================================================
+  //                          (10-12) the three ledges: up the vines (climb.js; world/ledges.js)
+  // =====================================================================================================
+  // The 2D map's "ClimbUp" events 11, 111 and 20 with their "BonusVineDown" 7, 69 and 21. Each vine starts as a creature
+  // (CE 51 LADDER: "Remove this vine to climb up!", a fight); once it is beaten, or once Alraune is (progress 30 / 35), she
+  // may climb: "Looks strong enough to hold me if I climb up!". What grows on the ledges is the 2D's own: aloe, berries and
+  // a wild blossom on A (and the Myconids' patch, below), a wild blossom on B, two aloes on C (and the red Myconid).
+  const vineGuard = {};
+  const climbs = createClimbs(S, C, env, {
+    show: (k, way) => way === 'down' || !vineGuard[k.id] || !S.events.includes(vineGuard[k.id].ev),
+    onTop: async (k) => {
+      if (S.flag('ledge_' + k.id)) return; S.flag('ledge_' + k.id, true);
+      if (k.id === 'B') await S.say('am', 0, 'Nothing up here but the view, kitty.\n...And a very pretty flower.');
+      else await S.say('am', 4, "Mind the edge, kitty.\nIt is a long way down for someone your size.");
+    },
+  });
+  if (!CLEAN) for (const k of climbs.list) {         // the maiden that sits on the vine
+    const id = 'vineIvy' + k.id, p = V3(k.foot.x + k.out.x * 0.35, 0, k.foot.z + k.out.z * 0.35), m = add(K.makeIvyMaiden({ seed: 81 + k.i * 3 }));
+    m.obj.position.copy(p); m.obj.rotation.y = Math.atan2(k.out.x, k.out.z); S.avoid(m.obj, 0.5, 2.2, () => m.up);
+    const rec = { id, at: { p, open: true }, group: [m], trap: false, out: true };
+    rec.ev = S.on({ id, at: p, r: 1.45, touch: true, run: async () => { S.toast('Remove this vine to climb up!', 'note', 2.4); await S.wait(0.5); return encounter(rec); } });
+    if (!rec.ev) { m.hideNow(); continue; }
+    S.block(id, p.x, p.z, 0.45); vineGuard[k.id] = rec;
+  }
+  const items = createItems(S, C, env, kit);
+  items.plant('aloe', 'ledgeAloeA', 39, 46); items.plant('berries', 'ledgeBerriesA', 35, 48); items.plant('blossom', 'ledgeBlossomA', 34, 47);
+  items.plant('blossom', 'ledgeBlossomB', 8, 9);
+  items.plant('aloe', 'ledgeAloeC1', 42, 24); items.plant('aloe', 'ledgeAloeC2', 46, 24);
+  if (S.progress >= 100) items.mandragora('ledgeMandraB', 7, 12);      // (the 2D's is there from GAME_PROGRESS 200)
+
+  // =====================================================================================================
   //                                                    Myconids
   // =====================================================================================================
   // The 2D map's Myconids: four orange ones and two red (quicker). A hit and she stamps the root out; a miss and
   // the lady and her children have her (captures.js).
-  [[16, 33, 'orange'], [34, 40, 'orange'], [24, 4, 'orange'], [4, 16, 'red'], [45, 24, 'red'], [33, 42, 'orange']].forEach(([x, y, tint], i) => {      // (10-02: and the sixth, the 2D's EV15 at (31,45): that tile lies under this map's canopy, so on the open ground just north of it)
+  [[16, 33, 'orange'], [34, 40, 'orange'], [24, 4, 'orange'], [4, 16, 'red'], [45, 24, 'red'], [31, 45, 'orange']].forEach(([x, y, tint], i) => {      // (10-12: the sixth, the 2D's EV15 at (31,45), and the red one at (45,24) stand on the ledges they stand on in the 2D game, up the vines)
     if (tint === 'orange' && S.progress >= 35) return;
     const id = 'myc' + i, at = spot(x, y), m = add(K.makeMyconid(i + 2, tint)); m.obj.position.copy(at.p);
     S.avoid(m.obj, 0.6, 1.9, () => m.obj.visible);

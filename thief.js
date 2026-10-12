@@ -334,10 +334,13 @@ export function createThief(S, C, o = {}) {
       const fo = T.follow, goal = fo.fn(); _a.subVectors(goal, tw.obj.position).setY(0); const d = _a.length();
       // (only once whoever she follows stands still: behind someone who walks slower than she does she keeps step, as she did)
       const lead = fo.gx === undefined ? 0 : Math.hypot(goal.x - fo.gx, goal.z - fo.gz) / Math.max(dt, 1e-4); fo.gx = goal.x; fo.gz = goal.z;
-      const go = d > fo.gap + (fo.moving ? (lead < 0.05 ? 0.03 : 0) : 0.35);
+      // (10-12, ledges: left at the foot or on the top of a rock face that Anne has climbed, she waits there; and she
+      // takes no step that would leave the level they are both on)
+      const LED = S.ledge, apart = LED && Math.abs(tw.obj.position.y) > 0.5;
+      const go = !apart && d > fo.gap + (fo.moving ? (lead < 0.05 ? 0.03 : 0) : 0.35);
       const run = go && d > fo.gap + (fo.gait === 'Run' ? 1.2 : 2.6), gait = go ? (run ? 'Run' : 'Walk') : IDLE;      // (she runs to catch up when Anne gets ahead)
       if (gait !== fo.gait) { fo.gait = gait; fo.moving = go; const a = tw.play(go ? gait + BARE : gait, 0.3); if (a && go) a.timeScale = run ? 1 : a.getClip().duration / (1.52 / fo.v); }
-      if (go) tw.obj.position.addScaledVector(_a, Math.min(d - fo.gap, (run ? 4.4 : fo.v) * dt) / d);
+      if (go) { const st = Math.min(d - fo.gap, (run ? 4.4 : fo.v) * dt) / d, p = tw.obj.position; if (!LED || LED.levelAt(p.x + _a.x * st, p.z + _a.z * st) === LED.level()) p.addScaledVector(_a, st); }
       if (d > 0.2) T.yaw = Math.atan2(_a.x, _a.z);
     }
     if (T.turn !== null && !T.walk) T.yaw = T.turn;

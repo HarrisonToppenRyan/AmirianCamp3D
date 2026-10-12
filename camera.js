@@ -23,7 +23,11 @@ export function createFollowCam({ THREE, C, level, walkAt }) {
   const top = POND
     ? (tx, tz) => (!C.inMap(tx, tz) || '#|'.includes(C.tileAt(tx, tz)) ? Infinity : C.tileAt(tx, tz) === 'r' ? (tz <= NORTH_FACE ? 4.4 : 2.3) : -Infinity)
     : (tx, tz) => (walkAt(tx, tz) || (C.inMap(tx, tz) && '~W'.includes(C.tileAt(tx, tz)) && !C.inCliff(tx, tz)) ? -Infinity : Infinity);
-  const solid = (tx, tz, y) => y < top(tx, tz);
+  // (10-12) raised ground (a ledge, world/ledges.js) is solid up to its top, and what stands on it that much higher. The
+  // camera's own y is told in Anne's frame (world/frames.js: on a ledge the world is drawn lower); the tiles, the crowns
+  // and the trunks are kept in the heights they were built at, so the frame's height is added before anything is compared.
+  const fH = C.frameH || (() => 0), tileH = C.LEDGE_H ? (tx, tz) => C.levelAt(tx, tz) * C.LEDGE_H : () => 0;
+  const solid = (tx, tz, y) => { const h = tileH(tx, tz), t = top(tx, tz); return y + fH() < (h > 0 ? Math.max(t + h, h) : t); };
 
   // push (x, z) RHO clear of the solid tiles around it; false when it lies in one (or cannot be freed)
   const q = new THREE.Vector3();
@@ -44,20 +48,22 @@ export function createFollowCam({ THREE, C, level, walkAt }) {
   const nearBuf = [];
   let near = blockers;                               // (the blockers within reach of the boom, refreshed once a frame)
   function inBlocker(p, list = near, pad = 0) {      // 0 = free, 2 = in a crown, conifer or the tent, 3 = behind a trunk
+    const py = p.y + fH();
     for (const b of list) {
       let dx = p.x - b.x, dz = p.z - b.z;
       if (b.trunk) {
-        if (p.y > b.h) continue;
-        const k = Math.min(1, Math.max(0, (p.y + 0.3) / (b.h + 0.3))), r = b.r + 0.22 + pad;
+        const ty = py - (b.y0 || 0);
+        if (ty > b.h) continue;
+        const k = Math.min(1, Math.max(0, (ty + 0.3) / (b.h + 0.3))), r = b.r + 0.22 + pad;
         dx -= b.lx * k * k; dz -= b.lz * k * k;
         if (dx * dx + dz * dz < r * r) return 3;
       } else if (b.cone) {
-        const u = (p.y - b.y0) / b.h;
+        const u = (py - b.y0) / b.h;
         if (u < -0.25 || u > 1.05) continue;
         const r = b.r * (1 - 0.8 * Math.min(1, Math.max(0, u))) ** 0.9 + TREE + pad;
         if (dx * dx + dz * dz < r * r) return 2;
       } else {
-        const r = b.r + TREE + pad, ry = b.ry + TREE + pad, dy = p.y - b.y;
+        const r = b.r + TREE + pad, ry = b.ry + TREE + pad, dy = py - b.y;
         if ((dx * dx + dz * dz) / (r * r) + dy * dy / (ry * ry) < 1) return 2;
       }
     }

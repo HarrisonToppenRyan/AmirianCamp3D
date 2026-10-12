@@ -98,11 +98,12 @@ export function buildPond(c) {
       for (let j = 0; j < 3; j++) col.push((GREY[j] * (1 - k) + MOSS[j] * k) * tone);
     }
   }
-  for (const [x, y] of level.objects.rock || []) boulder((x + 0.5) * S, 0.12, (y + 0.5) * S, rr(0.5, 0.62), rr(0.5, 0.7), rr(0.45, 0.58), 0.5);
+  const gy = (x, y) => (c.buildHeightAt ? c.buildHeightAt((x + 0.5) * S, (y + 0.5) * S) : 0);      // (10-12: on a ledge's top, if its tile is raised)
+  for (const [x, y] of level.objects.rock || []) boulder((x + 0.5) * S, gy(x, y) + 0.12, (y + 0.5) * S, rr(0.5, 0.62), rr(0.5, 0.7), rr(0.45, 0.58), 0.5);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     if (tileAt(x, y) !== 'r') continue;
     const north = level.name === 'pond' && y <= 6, h = north ? rr(3.0, 3.8) : rr(1.1, 1.7);
-    boulder((x + 0.5) * S + rr(-0.15, 0.15), h * 0.3, (y + 0.5) * S + rr(-0.15, 0.15), S * rr(0.66, 0.78), h, S * rr(0.66, 0.78), 1);
+    boulder((x + 0.5) * S + rr(-0.15, 0.15), gy(x, y) + h * 0.3, (y + 0.5) * S + rr(-0.15, 0.15), S * rr(0.66, 0.78), h, S * rr(0.66, 0.78), 1);
   }
   const rockGeo = new THREE.BufferGeometry();
   rockGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); rockGeo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3)); rockGeo.computeVertexNormals();

@@ -326,3 +326,64 @@ Content line, unchanged: she is an adult and always dressed; an outfit changes w
     (camera.js), so furniture is blocked with `S.block`, not with tiles.
 - level_road.json has a second exit (its east end, to `post`): written by tools/make_level_epilogue.py.
 
+
+## Raised ground: ledges, and "level frames" (10-12, batch 27)
+He asked for vines that can be climbed to a higher area (the 2D's three "ClimbUp" vines in the North Forest, its "Weeds"
+in the Forest of Lys). A level may now have ground on TWO heights.
+
+**The level file** (`tools/ledges.py`, used by `make_level_forest.py` and `make_level_ch2.py`):
+- `levels`: rows of `'0'` / `'1'`, the tiles that stand on the raised ground (walkable or not: the forest, bushes and
+  rocks within one tile of a ledge's top stand up there with it, so that from on top it is a clearing and not a pillar);
+- `ledgeH`: how high (3.0 m);
+- `climbs`: `[{id, base: [x, y], top: [x, y]}]`. She stands on `base` (low, walkable) and climbs to `top` (raised,
+  walkable); they are in one row or column, the tiles between them are raised and walkable (the 2D's two tiles of rock
+  face), and the two tiles beside `base` stay low, so the face she climbs is a straight wall.
+
+**What the world modules do** (`c` = `world/common.js`):
+- `c.levelAt(tx, ty)` 0 | 1; `c.LEDGE_H`; `c.buildHeightAt(wx, wz)`: the height as built (the camp's plateau, or a
+  ledge). Everything that grows or stands on a tile takes its y from it: trees and bushes already did (`heightAt`), grass
+  (`plantGrass`), the ground cover (`meshBuilder().lift`), the glade levels' boulders and rock banks (`world/pond.js`).
+- `world/ledges.js` (a world part, built after the terrain, only when the level has `levels`): the outline of the raised
+  ground traced along tile edges, rounded and made uneven; the ROCK FACE along it (strata that jut, a lip of turf,
+  darker at the foot, wet in water; one canvas texture laid out by arc length and height, nothing in world space); the
+  TOP, triangulated to the rock's own edge and wearing the ground mesh's own material with the same map coordinates, so
+  turf, forest floor and paths carry on up there; small rocks at its foot and strands of ivy from its lip where it faces
+  open ground. The ground mesh itself stays flat underneath, as under the camp's plateau. It leaves
+  `c.ledges = { climbs: [{ id, base, top, at, out, h }], FACE }`: for each climb the foot of the face at the middle of the
+  vine (0.12 m out of the tile edge: the rock is exactly flat there, 0.8 m to each side), the direction out of it, its
+  height.
+- `camera.js`: a raised tile is solid for the camera up to its top (what stands on it, that much higher).
+- The grass is pressed down by her feet only at her own height (`pressed *= 1 - smoothstep(0.6, 1.0, |dy|)`).
+
+**Level frames** (`world/frames.js`). The scripted layer writes ground = 0 everywhere, in hundreds of places (her y, every
+shot's height, every prop). So when she stands on a ledge it is the WORLD that is drawn lower:
+- `G0` 'frame:ground': everything the world modules built (taken right after `C.flushInst()`; not the sky's lights, their
+  targets, nor the dome), the hollow log's root, and whatever the story stands on low tiles. y = 0 while she is on the low
+  ground, -H while she is on a ledge.
+- `G1` 'frame:ledge': what the story stands on a ledge's top, written with y = 0 like everything else. y = +H while she is
+  below, 0 while she is on a ledge.
+- The scene's root: Anne, the lights, her familiar (`userData.frame = 'anne'`), and every piece of kit a scene writes world
+  coordinates into (vines, ties, tools, loose shoes, bubbles, the foot cam's things). Always her frame.
+- A group with y = 0 gives its children the same world matrices as the scene would: on the level she stands on, a thing's
+  own position IS its world position. Nothing is re-parented at a climb.
+- Membership: `frames.settleNew(mark)` after the area's `setup` puts every thing the script added AND stood somewhere in the
+  map into the group of the tile it stands on (kit is made at the origin and stays; so does a thing outside the map: a
+  set she is sent to). Later: `S.settle(obj[, lv])` (a figure shown at its home spot), `S.ledge.carry(obj, lv)` (a thing
+  that has moved to the other level, its place in the world kept), `S.ledge.free(obj)` (back to the root).
+- `c.heightAt()` is relative to the level she is on (0 under her feet on either); `c.frame()`, `c.frameH()`.
+- The switch is `setLevel(lv, { keepY, cut })` in index.html (`S.ledge.setLevel`): the two groups, her y, the follow
+  camera's kept points (`camera.position`, `look`, the foot cam's), the story camera's six vectors and its focus point
+  (`story.shiftCam`), her smoothed soles (`C.snapSoles`), all in one synchronous block, so the picture does not change. A
+  climb calls it at the top of the face (up) or before she goes over the edge (down); `keepY` is for a script that has
+  put her on the other level at y = 0 already (a checkpoint, a saved game on a ledge, `?at=`, `?ev=`).
+
+**Walking** (index.html): she walks on the tiles of her own level (`walkL`), keeps 0.42 m (`KEEP`) off every tile of the
+other one (the rock face from below, the edge from above: the rock stands at most 0.20 m out of the tile's edge, and no
+rocks lie at its foot where she walks), and no step takes her across. `blocked()` carries the rule, so
+`canStep` and `unstick` both follow it. A round obstacle blocks only its own level (`lv`). `keepOn(p)` (used by the
+story's `place`) and `reachOnLevel` (its `hop`) keep scripted moves on her level. Net: a script that leaves her on
+walkable ground of the other level with none of her own within two tiles is taken to have moved her there (`unstick`).
+
+**Tests**: `window.__frames.report()` (what is in which group; what is left at the root away from the origin),
+`window.__setLevel(lv)`, `window.__climbs.goUp(id)` / `.goDown(id)`, `?at=<a ledge tile>`. `?cam=` is in the world's
+coordinates as built (it is moved with a level change): for a view from a ledge add 3 to its two heights.

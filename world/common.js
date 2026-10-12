@@ -14,7 +14,17 @@ export function createCommon({ THREE, scene, renderer, level, qp, camera = null,
   const tallAt = (x, y) => inMap(x, y) && level.tallgrass[y][x] === 't';
   const tc = (x, y) => new THREE.Vector3((x + 0.5) * S, 0, (y + 0.5) * S);   // world centre of tile (x, y), on the ground
   const inCliff = level.plateau === false ? () => false : (tx, ty) => tx < 4 && ty < 5;                               // the plateau: tiles with x < 4 and y < 5 (and beyond the map edge)
-  const heightAt = (wx, wz) => (inCliff(Math.floor(wx / S), Math.floor(wz / S)) ? CLIFF_H : 0);
+  // ---------- (10-12) raised ground: the ledges that are climbed to by a vine (tools/ledges.py; world/ledges.js builds them) ----------
+  // level.levels: rows of '0' / '1', the tiles that stand on the raised ground; level.ledgeH: how high (m).
+  // "Level frames" (world/frames.js): the scripted layer writes ground = 0 everywhere, so while Anne stands on a ledge
+  // the WORLD is drawn LEDGE_H lower instead, and every height is told relative to the ground she stands on: heightAt()
+  // is 0 under her feet on either level. buildHeightAt() is the height as built (the world modules stand things with it).
+  const LEDGE_H = level.levels ? (level.ledgeH || 3) : 0;
+  const levelAt = LEDGE_H ? (tx, ty) => (inMap(tx, ty) && level.levels[ty][tx] === '1' ? 1 : 0) : () => 0;
+  let frameLv = 0;
+  const frame = () => frameLv, setFrame = (lv) => { frameLv = lv ? 1 : 0; }, frameH = () => frameLv * LEDGE_H;
+  const buildHeightAt = (wx, wz) => { const tx = Math.floor(wx / S), ty = Math.floor(wz / S); return inCliff(tx, ty) ? CLIFF_H : levelAt(tx, ty) * LEDGE_H; };
+  const heightAt = (wx, wz) => buildHeightAt(wx, wz) - frameLv * LEDGE_H;
   const objAt = {};                                                           // "x,y" -> 'conifer' | 'pumpkin' | 'flowers' | 'fern' | 'vine' | 'hedge'
   for (const [k, list] of Object.entries(level.objects)) for (const [x, y] of list) objAt[`${x},${y}`] = k;
   const LOG_TILE = level.log || [-60, -60];                                                   // the hollow log of the log scene stands here (built by logscene.js)
@@ -84,5 +94,6 @@ export function createCommon({ THREE, scene, renderer, level, qp, camera = null,
   const camBlockers = [];     // what the follow camera must stay out of besides solid tiles (camera.js): tree crowns, conifers
   const bushes = [];          // (10-05) every bush foliage.js plants: { x, y, z, r, h } (its dome's middle and radii): a story shot is not taken from inside one (story.js)
   return { ultra, ANISO, THREE, scene, renderer, camera, level, qp, S, M, CLIFF_H, W, H, inMap, tileAt, walkAt, tallAt, tc, inCliff, heightAt, objAt, LOG_TILE, camBlockers, bushes, night,
+    LEDGE_H, levelAt, frame, setFrame, frameH, buildHeightAt,
     rng, mtx, canvasTex, noise2, fbm2, addInst, flushInst, CHUNK };
 }

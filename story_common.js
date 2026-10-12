@@ -65,7 +65,7 @@ export function common(S) {
   }
 
   // ---------- Amaymon ----------
-  const am = K.makeAmaymon(); scene.add(am.obj); S.actors.push(am);
+  const am = K.makeAmaymon(); scene.add(am.obj); S.actors.push(am); am.obj.userData.frame = 'anne';      // (10-12: he is hers, on whichever level she stands: world/frames.js)
   const _h = V3(), _p = V3();
   let amSpot = null;                               // a fixed place for him in this scene (else he floats at her shoulder)
   // He floats at one of her shoulders, or behind and above her: whichever the camera sees furthest to the side of her
@@ -96,9 +96,11 @@ export function common(S) {
   const sparks = K.makeSparks(); scene.add(sparks.obj); S.actors.push(sparks);
 
   // ---------- checkpoints: where she comes round if the vines get the better of her ----------
-  let check = { x: anne.position.x, z: anne.position.z, yaw: anne.rotation.y };
-  const checkpoint = () => { check = { x: anne.position.x, z: anne.position.z, yaw: anne.rotation.y }; };
-  const toCheckpoint = () => { anne.position.set(check.x, 0, check.z); anne.rotation.set(0, check.yaw, 0); };
+  // (10-12: and on which level, where an area has ledges: she may be carried off a ledge to a checkpoint below it)
+  const lvNow = () => (S.ledge ? S.ledge.level() : 0);
+  let check = { x: anne.position.x, z: anne.position.z, yaw: anne.rotation.y, lv: lvNow() };
+  const checkpoint = () => { check = { x: anne.position.x, z: anne.position.z, yaw: anne.rotation.y, lv: lvNow() }; };
+  const toCheckpoint = () => { anne.position.set(check.x, 0, check.z); anne.rotation.set(0, check.yaw, 0); if (S.ledge) S.ledge.setLevel(check.lv, { keepY: true, cut: true }); };
 
   // ---------- what they make of her shoes and her toenails (the look she chose: "Anne's look") ----------
   // How much of her feet a pair shows: 3 flip-flops, slides, toe-posts; 2 strappy and T-strap sandals; 1 open-toe heels;
@@ -297,6 +299,11 @@ export function common(S) {
       case 'fairy': out.feet = `Tee hee! ${Feet} feet in ${shoes}!\nPretty, pretty!`; out.outfit = `Tee hee! ${up(aTheme)}!\nPretty, pretty!`; out.species = aKind && (kind === 'fairy' ? `Tee hee hee! A big sister!\nBig sisters giggle too!` : `Ooh! ${up(aKind)}!\nWe never caught one of those!`); break;
       case 'pumpkin': out.feet = `Hee hee! ${Feet} feet in ${shoes}!\nSofter than pumpkin flesh, I bet!`; out.outfit = `Hee hee hee! ${up(aTheme)} in my patch!\nSeed thieves come in all kinds!`; out.species = aKind && `Hee hee! ${up(aKind)}, stealing seeds!\nNow I have seen everything!`; break;
       case 'myc': out.feet = `Pretty ${feet} feet! Tick tick!`; out.outfit = 'Pretty! Tick!'; out.species = aKind && 'Ooo... new! Tick tick tick!'; break;
+      // (10-12: the Forest of Lys's hornets and slimes, in their own voices)
+      case 'hornet': out.feet = `Zzzuch pretty ${feet} feet in thozze ${shoes}, prezziousss!\nSsssweet as honey, I bet... BZZZT!`; out.outfit = `${up(aTheme)}, flying into OUR meadow?\nThe hive hazz never caught one of thozze! BZZT!`;
+        out.species = aKind && `${up(aKind)}! BZZZT!\nOur queen will want to zzzee you, prezziousss!`; break;
+      case 'slime': out.feet = `Blub... such ${feet} little feet in ${shoes}...\nso warm... so dry... not for long!`; out.outfit = `Blub! ${up(aTheme)}!\nYou will look even better all sticky!`;
+        out.species = aKind && `Ooh... ${aKind}...\nblub... I never tasted that flavour!`; break;
       default: out.feet = `Such pretty ${feet} feet...`;
     }
     // (batch 23, as he asked: what she wears is named) the five who have a line per kind of outfit open it with the outfit itself
@@ -305,7 +312,8 @@ export function common(S) {
     const rest = (t) => (who === 'ivy' || who === 'bo' ? t.split('\n').slice(1).join('\n') || t : t);
     if (TH[who]) { out.outfit = `${Wearing}, ${CALL[who]}\n` + rest(TH[who][theme] || TH[who].witch); out.species = kind ? (KIND[who][kind] || null) : null; }
     else if (W.wearing) out.outfit = { au: `Dressed in ${wearing}, I see.\nFor a walk in the woods? Morons, all of you.`, scylla: `${Wearing.toUpperCase()}, IN SCYLLA'S POOL?!\nScylla has never had a guest dressed like that!`,
-      ghost: `Ooooh... ${wearing}...\nall dressed up... for uuus...`, fairy: `Tee hee! ${Wearing}!\nPretty, pretty!`, pumpkin: `Hee hee hee! ${Wearing}, in my patch!\nSeed thieves dress in all kinds!` }[who] || out.outfit;
+      ghost: `Ooooh... ${wearing}...\nall dressed up... for uuus...`, fairy: `Tee hee! ${Wearing}!\nPretty, pretty!`, pumpkin: `Hee hee hee! ${Wearing}, in my patch!\nSeed thieves dress in all kinds!`,
+      hornet: `${Wearing}, in OUR meadow? BZZZT!\nThe hive hazz never caught one drezzed like that!`, slime: `Blub! ${Wearing}!\nIt will look even better all sticky!` }[who] || out.outfit;
     return out;
   }
   // the word for the colour of her soles (two old lines say "pink soles")

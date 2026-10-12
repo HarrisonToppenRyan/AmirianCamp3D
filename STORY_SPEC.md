@@ -236,3 +236,75 @@ Rule kept: the lines name the tone of her skin, her hair, her clothes, her shoes
   name and her spot once she has left (`closed`): `leaveFor` has saved where Continue must take her.
 - **A creature that wanders** (creatures.js `roam`) takes `rec.at.p` with it: `encounter` turns her to where it is.
 
+
+## Batch 27 (10-12): ledges in the story layer; the vines; hornets, slimes, holes, plants
+The engine side (the level file, the rock, "level frames") is in WORLD_SPEC.md, its last section. What a story script
+needs to know:
+
+**Levels.** `S.ledge` is null in an area without ledges; else `{ level(), levelAt(x, z), setLevel(lv, o), settle(obj, lv),
+carry(obj, lv), free(obj), keepOn(p), reach(...), climbs, H }`. A script still writes ground = 0 everywhere: on a ledge
+the WORLD is drawn lower, so her feet are at y = 0 there too.
+- What an area's `setup` adds to the scene AND stands somewhere in the map goes, by itself, into the group of the tile it
+  stands on (the low ground's or the ledge's). Kit is made at the origin and stays in her frame. A world thing that is
+  shown or moved to its home LATER must be settled by hand: `S.settle(fig.obj, 0)` (creatures2.js does it for the hornet
+  and the slime each time they are stood at a spot). A thing forgotten at the root rises with her when she climbs: it is
+  seen floating from the ledge, and `__frames.report().root` lists it.
+- An event is for whoever stands on its level: the level of the tile under `ev.p`, read live (a roaming creature moves
+  it), or `ev.lv` if given (the two climb events). A blocker blocks its own level. `S.onLevel(p)`.
+- `S.place(p, yaw)` keeps her on the level she is on (a spot on the other one, or against the rock, is moved to the
+  nearest ground of hers); `S.place(p, yaw, { level })` puts her on that level. `S.hop` stops short of an edge.
+  `C.checkpoint()` remembers the level; `C.toCheckpoint()` switches to it. `?ev=` puts her on the event's level.
+- Roaming creatures keep to the level of their home (`creatures.js roam`) and take no notice of her on the other one;
+  a follower (thief.js `follow`) waits at a rock face she has not climbed and takes no step off the shared level.
+
+**The vines** (`climb.js`). `createClimber(S).climb(fig, wall, 'up' | 'down', o)`: no clip; her hands and feet are put on
+the vine every frame by two-bone IK after her clip has posed her (works on Anne and on any twin). `createClimbs(S, C, env,
+{ gate, show, follower, refollow, onTop, onDown })`: per climb a net of vines on the face, "E — Climb the vine" at the
+foot and "E — Climb down the vine" on top, the 2D's own lines ("Looks strong enough to hold me if I climb up!", "I can
+climb down using this."), the picture rising with her. Going up, `setLevel(1)` is called the moment she stands on top;
+going down, `setLevel(0)` before she backs over the edge: the climb itself always plays in the low ground's coordinates.
+A follower (Boudicca) is shifted by H with the switch and then climbs after her. Create it AFTER the area's own
+`S.late.push` (a twin must be posed by its update before the climb's IK turns its limbs).
+- North Forest: the 2D's three (events 11 / 7, 111 / 69, 20 / 21). An Ivy Maiden sits at the foot of each
+  ("Remove this vine to climb up!") until she is beaten, or until Alraune is (progress 30). On top: A aloe, berries, a wild
+  blossom and the Myconids' patch (the 2D's EV15, moved back up); B a wild blossom (and a Mandragora from progress 100);
+  C two aloes and the red Myconid. A capture on a ledge plays there, unchanged.
+- Forest of Lys: the 2D has ONE climb (its "Weeds": aloe, aloe, a Mandragora) and a secret path to the Glade of Lys (its
+  own map: six Mandragoras). Here both are ledges: `weeds` west of the way in, `glade` east of the lower road
+  ("You've found the Lys Glade"). Boudicca climbs after Anne.
+
+**Hornets and slimes** (`creatures2.js`, `captures2.js`, `cast3.js`; the 2D's CE 58 / CE 59). `pack(kind, spots, { tame })`:
+ONE figure per kind (and one sister) for all its spots: she is at the spot nearest to Anne and changes spot only while Anne
+is more than 15 m from where she is; hidden beyond 32 m. She wanders about her spot and comes for Anne (hornets fast,
+slimes slowly, never past a leash). Touched: "HORNETS!!" / "SLIMES!!!", a remark on her looks (`C.lookSay('hornet' |
+'slime')`: feet and shoes, outfit, kind, by turns), two gauges. Lost: `cap2.hornet` / `cap2.slime` (the 2D's FIRST
+capture stage only: her shoes come off, her feet are tickled; a sister for a second round), then, by the player's "when
+caught" choice, tied up (`cap.bound`), then the checkpoint. Won: "GOTCHAA!!", the area's `tame`, and if she gave up
+(stage 3): Honey x1-4 / Jelly Drops x1-2 (counted as herbs) and once "HORNET UNLOCKED!!" / "SLIME UNLOCKED!!". A beaten
+one is gone until the forest is entered again (`S.remove(id, false)`), as in the 2D. The area's `S.late` hook must call
+`pack.update(dt, t)` (it poses the figures).
+
+**tame(T)** (story_lys.js): the 2D's DOMINATION for anybody. The creature on a stump, wrists and ankles wound with vine;
+Boudicca kneels at one sole (footwork.js), Anne's conjured feather has the other; "Tickle her!" / "Random Spot!" / "Spare
+her", two gauges a go, three stages. `T: { fig, sheet, at, yaw, pitch, mark, intro, cries, surrender, outro, gone }`,
+returns the stage reached. The dryad's scene is one caller (`domination`), the hornets' and slimes' another (`tamer`).
+`TM` is the taming being played (`say()` holds her face between her lines by it).
+
+**Holes** (`traps.js`, new options): `kinds` (a list), `random`, `open` (the rim shows before it goes off), `look` (a hole
+with something to say of it: once it has gone off it stands in the way and is looked at with E, not hopped over),
+`onFall`, `onOut`, `?trapkind=`. Lys: `ltrap1` (ivy), `ltrap2` (ivy or fairies), `lgnome` (fairies; the 2D's "GnomeHole"
+talk afterwards).
+
+**Plants and the Mandragora** (`items.js`): `plant('aloe' | 'berries' | 'blossom' | 'clover', id, tx, ty)` (shaken,
+"Aloe x2", counted as herbs, gone for good), `mandragora(id, tx, ty, { gives })`: a tuft that rustles; touched, the root
+hops out and runs from her at half her pace on its own level, never far from home; touched again, it gives its leaves
+(in the Glade of Lys its root). One touch event that goes with it.
+
+**Tests** (tools/reg2.sh has them): `ev=hornet0 | slime0 | slime1 | ltrap1 | ltrap2 | lgnome | lgnomeLook | lysmyc0 |
+climbUp_weeds | climbDown_glade` in Lys, `ev=climbUp_B`, `at=31,46&ev=myc5` (a capture on a ledge) and `ev=vineIvyA` in
+the forest; marks `hornetwon`, `hornettickle`, `slimewon`, `slimetickle`, `hornet1`, `slime1`...; console lines
+`LYS hornet tamed 3`, `LYS slime caught free | lost`, `LYS myc won`, `CLIMB up <id> done`.
+
+**Left out**: the 2D's later capture stages (adult: not for this game); the hollow log of Lys (the log scene would bring
+its faults with it: it copies the herb count at page load and would overwrite what was picked since); the moth girl and
+the witches (later chapters); fairies as items.

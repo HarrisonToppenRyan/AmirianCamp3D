@@ -1255,7 +1255,7 @@ function buildButterflies(kit) {
       for (const [across, along] of [[0, 0], [1, 0], [1, 1], [0, 1]]) {
         position.push(side * across * size, 0, (0.5 - along) * size);
         uv.push((kind + across * 0.985) / KINDS.length, 1 - along);
-        home.push(x, y, z); flight.push(rx, rz, pace, offset);
+        home.push(x, y + (c.buildHeightAt ? c.buildHeightAt(x, z) : 0), z); flight.push(rx, rz, pace, offset);      // (10-12: above a ledge's top, if its home is on one)
       }
       index.push(first, first + 1, first + 2, first, first + 2, first + 3);
     }

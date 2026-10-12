@@ -20,6 +20,10 @@ const { createThief } = await import('./thief.js' + V);
 // walking: she faces it in the hole and jumps out that way), kind ('vines' | 'ivy' | ...), id }. Such a trap is hidden
 // (no pile of leaves): she steps on it, falls in, and once it has gone off it stays an open pit she jumps across.
 // Without holeAt: the camp's own (the pile of leaves, the choice of who lives down there, the pumpkins, the thief).
+// (10-12, the Forest of Lys: the 2D's "trap A:B [random]") kinds: a list instead of one kind, the first of it unless
+// `random` (then one of them, picked as she falls; tests: ?trapkind=<key>); open: the hole shows before it goes off (the 2D's
+// "GnomeHole"); look: async, what she says of it once it has gone off (E), instead of hopping over it; onFall / onOut: for
+// whoever travels with her (they are stood aside, and come back).
 export function createTraps(S, C, env, opts = {}) {
   const CAMP = !opts.holeAt;
   const { THREE, scene, anne, A, V3 } = S, { K, sparks, feet, along } = C;
@@ -453,7 +457,7 @@ export function createTraps(S, C, env, opts = {}) {
     for (const h of hands) { h.on = h.k = 0; h.g.visible = false; }
     for (const f of fairies) { f.on = f.k = 0; f.g.visible = false; }
     for (const c of cuffs) c.visible = false; chain.visible = false;
-    room.visible = false; rim.visible = !CAMP && !!S.state.flags[ID + 'Sprung']; pile.visible = CAMP;
+    room.visible = false; rim.visible = !CAMP && (!!opts.open || !!S.state.flags[ID + 'Sprung']); pile.visible = CAMP;
     post.setCloseUp('off'); S.grassFlat = null; A.setHeelsWorn(true); if (A.setHat) A.setHat(true); S.toes(0);
   }
   const prevEnd = S.onSceneEnd; S.onSceneEnd = () => { if (HT.on) reset(); if (prevEnd) prevEnd(); };
@@ -472,7 +476,11 @@ export function createTraps(S, C, env, opts = {}) {
       const pickI = await S.choice(names.map((k) => 'Step on it: ' + KINDS[k].label).concat(['Leave it']));
       if (pickI >= names.length) { await say('a1', 6, "...I don't trust anything you call soft."); return; }
       key = names[pickI];
-    } else key = opts.kind || 'vines';
+    } else {
+      const list = (opts.kinds || [opts.kind || 'vines']).filter((k) => KINDS[k] && k !== 'thief'), want = new URLSearchParams(location.search).get('trapkind');
+      key = (want && list.includes(want) ? want : opts.random ? list[Math.floor(Math.random() * list.length)] : list[0]) || 'vines';
+      if (opts.onFall) opts.onFall(key);
+    }
     const kd = KINDS[key];
     const shoesDo = (stage) => { if (!kd.shoes) return; kd.shoes(stage); if (kd.work && kit.noteShoe) kit.noteShoe(kd.work[0], kd.work[1]); };      // (10-03: noted, for when she puts them back on)
     // ----- the fall
@@ -566,7 +574,7 @@ export function createTraps(S, C, env, opts = {}) {
           }
           if (opts.wake) { await opts.wake(false); return; }
         }
-        if (!CAMP && opts.wake) { reset(); anne.position.y = 0; S.clip('Idle', 0); await opts.wake(false); return; }      // (a room's pit: she comes round where she last rested)
+        if (!CAMP && opts.wake && key !== 'fairies') { reset(); anne.position.y = 0; S.clip('Idle', 0); await opts.wake(false); return; }      // (a room's pit: she comes round where she last rested; 10-12: not the fairies' pit: they let her go, as the 2D's do)
         reset(); anne.position.y = 0; S.place(V3().copy(H).addScaledVector(F, 1.25), CAMP ? YAW + PI : YAW); S.clip('Idle', 0); S.cam.face(anne, { y: 1.35, dist: 2.6, turn: 0.5, cut: true });
         await S.wait(0.4); await kit.putShoesOn(); await S.fade(0, 0.8);
         await say('am', 2, 'They let you go when you ran out of breath.\nIt took a while. I counted.');
@@ -578,9 +586,12 @@ export function createTraps(S, C, env, opts = {}) {
   if (CAMP) { S.on({ id: 'hole', at: H, r: 1.9, action: 'E — Look at the pile of leaves', run: holeTrap }); S.avoid(H, 0.4, 0.3); }
   else {
     // a hidden trap: she steps on it. Once it has gone off it is an open pit, and stepping up to it she jumps over it (the 2D's SKIP)
-    pile.visible = false; rim.visible = !!S.state.flags[ID + 'Sprung'];      // (nothing shows until it has gone off)
-    S.on({ id: ID, at: H, r: 1.0, touch: true, run: async () => {      // (r: these pits sit in passages a tile wide: there is no way round them)
-      if (!S.state.flags[ID + 'Sprung']) return holeTrap();
+    pile.visible = false; rim.visible = !!opts.open || !!S.state.flags[ID + 'Sprung'];      // (nothing shows until it has gone off, unless it is an open hole from the start)
+    // (10-12) a hole with something to say of it (opts.look: the 2D's "GnomeHole") is not hopped over once it has gone off: it stands in the way and is looked at
+    const solidNow = () => { if (opts.look && S.state.flags[ID + 'Sprung']) { S.unblock(ID + 'B'); S.block(ID + 'B', H.x, H.z, 0.55); } };
+    if (opts.look) { S.on({ id: ID + 'Look', at: H, r: 1.7, action: 'E — Look at the hole', when: () => !!S.state.flags[ID + 'Sprung'], run: opts.look }); solidNow(); }
+    S.on({ id: ID, at: H, r: 1.0, touch: true, when: () => !opts.look || !S.state.flags[ID + 'Sprung'], run: async () => {      // (r: these pits sit in passages a tile wide: there is no way round them)
+      if (!S.state.flags[ID + 'Sprung']) { try { return await holeTrap(); } finally { solidNow(); if (opts.onOut) opts.onOut(); } }
       const d = V3(Math.sin(anne.rotation.y), 0, Math.cos(anne.rotation.y)), from = anne.position.clone(), to = V3().copy(H).addScaledVector(d, 1.2);
       S.toast('Hop!', 'note', 0.8); let k = 0;
       await S.until((dt) => { k = Math.min(1, k + dt / 0.5); anne.position.lerpVectors(from, to, k); anne.position.y = 0.45 * Math.sin(Math.PI * k); return k >= 1; });
@@ -589,7 +600,7 @@ export function createTraps(S, C, env, opts = {}) {
   }
 
 
-  if (!CAMP) return { hole: { at: H, kinds: [opts.kind || 'vines'] }, thief, pumpkins: [] };
+  if (!CAMP) return { hole: { at: H, kinds: opts.kinds || [opts.kind || 'vines'] }, thief, pumpkins: [], kit };
 
   // =====================================================================================================
   //                                             the pumpkin fiend

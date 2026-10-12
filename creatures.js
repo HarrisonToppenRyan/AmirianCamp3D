@@ -16,7 +16,9 @@ export function creatureKit(S, C, env, cap) {
   function spot(tx, ty) {
     const p = S.tileC(tx, ty);
     if (walkAt(tx, ty)) return { p, open: true };
-    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) if (walkAt(tx + dx, ty + dy)) return { p: p.add(V3(dx * TILE * 0.52, 0, dy * TILE * 0.52)), open: false, dx, dy };
+    // (10-12, ledges: on the same level as its own tile first: a thing on a ledge's rim is not put at the foot of the rock)
+    const L = S.ledge, lv = (x, y) => (L ? L.levelAt((x + 0.5) * TILE, (y + 0.5) * TILE) : 0), mine = lv(tx, ty);
+    for (const same of [true, false]) for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) if (walkAt(tx + dx, ty + dy) && (lv(tx + dx, ty + dy) === mine) === same) return { p: p.add(V3(dx * TILE * 0.52, 0, dy * TILE * 0.52)), open: false, dx, dy };
     return { p, open: false };
   }
   const add = (actor) => { scene.add(actor.obj); if (actor.update) S.actors.push(actor); return actor; };
@@ -50,7 +52,9 @@ export function creatureKit(S, C, env, cap) {
   function roam(rec, o = {}) {
     const home = rec.at.p.clone(), R = (o.radius || 2.5) * TILE, LEASH = (o.leash || o.radius * 1.6 || 4) * TILE, sp = o.speed || 0.55;
     const offs = rec.group.map((m) => m.obj.position.clone().sub(home)), st = { at: home.clone(), to: null, wait: Math.random() * 2.5, dir: V3() };
-    const okAt = (x, z) => walkAt(Math.floor(x / TILE), Math.floor(z / TILE));
+    // (10-12: it keeps to the level it lives on, where an area has ledges, and takes no notice of her on the other)
+    const LED = S.ledge, lv0 = LED ? LED.levelAt(home.x, home.z) : 0;
+    const okAt = (x, z) => walkAt(Math.floor(x / TILE), Math.floor(z / TILE)) && (!LED || LED.levelAt(x, z) === lv0);
     const clear = (a, b) => { for (let k = 1; k <= 10; k++) if (!okAt(a.x + (b.x - a.x) * k / 10, a.z + (b.z - a.z) * k / 10)) return false; return true; };
     // (10-05, review: and the record's own place: `encounter` turns her to rec.at.p, which stayed at the creature's home)
     const place = () => { rec.group.forEach((m, i) => m.obj.position.set(st.at.x + offs[i].x, 0, st.at.z + offs[i].z)); if (o.ev) o.ev.p.copy(st.at); rec.at.p.copy(st.at); S.moveBlock(rec.id, st.at.x, st.at.z); };
@@ -58,7 +62,7 @@ export function creatureKit(S, C, env, cap) {
     S.actors.push({ update(dt) {
       if (S.isActive() || (env.logScene && env.logScene.isActive()) || !rec.out || !rec.group.length || !rec.group[0].up) return;      // (frozen while a scene plays, the hollow log's too)
       const dA = Math.hypot(anne.position.x - st.at.x, anne.position.z - st.at.z);
-      if (o.notice !== 0 && dA < (o.notice || 5)) {
+      if (o.notice !== 0 && dA < (o.notice || 5) && (!LED || LED.level() === lv0)) {
         for (const m of rec.group) m.faceTo(anne.position.x, anne.position.z);
         if (!o.chase) return;
         const goal = V3(anne.position.x, 0, anne.position.z);

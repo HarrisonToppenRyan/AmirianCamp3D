@@ -422,7 +422,7 @@ export function buildFoliage(c) {
     const sl = (Math.hypot(sx, sy, sz) || 1) * 2 / size; sx /= sl; sy /= sl; sz /= sl;                // half the card's width
     const bx = px - gx * size * 0.08, by = py - gy * size * 0.08, bz = pz - gz * size * 0.08;        // the stalk end sits just inside the mass
     const tx = bx + gx * size, ty = by + gy * size, tz = bz + gz * size;
-    if (Math.min(by, ty) < LOW && Math.max(overhang(tx, tz), overhang(bx, bz)) > LOW_REACH - size * 0.25) return;
+    if (Math.min(by - heightAt(bx, bz), ty - heightAt(tx, tz)) < LOW && Math.max(overhang(tx, tz), overhang(bx, bz)) > LOW_REACH - size * 0.25) return;      // (10-12: low above the ground it hangs over, a ledge's top too)
     if (logGap(tx, tz) < size * 0.5) return;
     let mx = nx + gx * 0.5, my = ny + gy * 0.5, mz = nz + gz * 0.5; const ml = Math.hypot(mx, my, mz); mx /= ml; my /= ml; mz /= ml;   // the tip leans its normal outwards
     paint(0);
@@ -666,7 +666,7 @@ export function buildFoliage(c) {
       else addSprigs(cards, ball, i ? 12 : 40, spread * 0.36, LEAFY, -0.2, 0.98, 0.5, phase, paint);
     });
     if (noteCam || fine) c.camBlockers.push({ x: cx, y: y0 + crownY, z: cz, r: spread * 1.2 + 0.1, ry: spread * 0.9 },
-      { trunk: true, x, z, lx: leanX, lz: leanZ, h: crownY - spread * 0.4, r: girth * 1.5 });
+      { trunk: true, x, z, lx: leanX, lz: leanZ, y0, h: crownY - spread * 0.4, r: girth * 1.5 });
   }
   let noteCam = false;                             // set while the pond glade's own trees are built (see below)
 
@@ -817,8 +817,8 @@ export function buildFoliage(c) {
     const [x, y] = key.split(',').map(Number), [cx, cz] = tileCentre(x, y), [fx, fz] = intoForest(cx, cz), near = rowOf(x, y) === 1;
     const px = cx + fx * (near ? 0.25 : 0) + rr(-0.1, 0.1), pz = cz + fz * (near ? 0.25 : 0) + rr(-0.1, 0.1);
     trunks.push([px, pz]);
-    if (POND) { const h = rr(3.8, 5.2), sp = rr(0.95, 1.25); c.camBlockers.push({ cone: true, x: px, z: pz, y0: 1.0, h: h - 1.0, r: sp }); conifer(px, pz, h, sp, true); }
-    else { const h = rr(6.2, 8), sp = near ? Math.min(rr(1.25, 1.5), clearance(px, pz) + 0.1) : rr(1.4, 1.8); c.camBlockers.push({ cone: true, x: px, z: pz, y0: 1.0, h: h - 1.0, r: sp }); conifer(px, pz, h, sp, near); }
+    if (POND) { const h = rr(3.8, 5.2), sp = rr(0.95, 1.25); c.camBlockers.push({ cone: true, x: px, z: pz, y0: heightAt(px, pz) + 1.0, h: h - 1.0, r: sp }); conifer(px, pz, h, sp, true); }
+    else { const h = rr(6.2, 8), sp = near ? Math.min(rr(1.25, 1.5), clearance(px, pz) + 0.1) : rr(1.4, 1.8); c.camBlockers.push({ cone: true, x: px, z: pz, y0: heightAt(px, pz) + 1.0, h: h - 1.0, r: sp }); conifer(px, pz, h, sp, near); }
   }
   // the glade's own trees (pond level): round trees, willows, saplings and flowering bushes where the map has them
   if (POND) {

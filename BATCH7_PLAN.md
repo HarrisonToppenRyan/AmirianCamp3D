@@ -1159,3 +1159,77 @@ design, race, and skin color."
 ## Left out
 - The 2D's flying pose (Anne on her staff, a shoe falling): the model has no such clip; her standing foot poses are used.
 - Alraune, Scylla and the creatures as partners (their own models need their scenes' props).
+
+# Batch 27 (2026-10-12). VER 349+
+## The request, verbatim
+"Add in the possiblity of climbing up the vines to a higher area. In the 2D game, There should be a couple of areas on the
+northern forest as well as in the forest of Lys. Also add in the ememies from the 2D into the forest of Lys (bee girl, hole
+trap, slime, etc). Have all of the tickle scnes be SFW."
+
+## What the 2D has (read from its maps and common events; dumps and digests stay in the session's scratchpad, not here)
+- North Forest (Map 3): THREE vine climbs, each a "ClimbUp" event with a "BonusVineDown" above it: (36,49) / (36,48) to a
+  ledge of 24 tiles (a Myconid patch, an aloe, berries, a wild blossom), (6,15) / (6,14) to 16 tiles (a wild blossom; later
+  a Mandragora), (45,27) / (45,26) to 13 tiles (two aloes, the red Myconid). Each vine starts as a creature (CE 51 LADDER:
+  "Remove this vine to climb up!") and is free once it is beaten or Alraune is.
+- Forest of Lys (Map 36): ONE climb, the "Weeds" (8,15) / (8,14), to a ledge with two aloes and a Mandragora; and behind
+  more weeds a secret path to the Glade of Lys (Map 28): six Mandragoras, two fairies, a waterfall, a hollow log.
+- Its creatures at Chapter 2: Hornets x8 (CE 58), Slimes x8 (CE 59), Myconids x6 and red ones x5 (CE 52), two trap holes
+  (CE 77: ivy; ivy or fairies) and the "GnomeHole" (fairies; a talk about it afterwards), wild vines x4, Mandragoras x8
+  (a chase, nothing else), aloe, berries, clover, a hollow log.
+- A monster girl's event: ATTACK, the fight, lost: CAPTURE1 (her shoes come off, her feet are tickled: SFW) and then
+  stages that are adult (left out, as every such stage has been); won: DOMINATION (the party tickles HER, three stages)
+  and a reward.
+
+## What was built
+- **Raised ground.** Level fields `levels`, `ledgeH`, `climbs` (tools/ledges.py); `world/ledges.js` (the rock face, the
+  top in the ground's own paint, rocks at the foot, ivy from the lip); grass, cover, trees, bushes and boulders stand on
+  the raised tiles; the camera treats raised ground as solid up to its top. WORLD_SPEC.md, last section.
+- **Level frames** (`world/frames.js`, `setLevel` in index.html): on a ledge the world is drawn 3 m lower and she stays at
+  y = 0, so every scene, capture, shot and prop written for "ground = 0" plays on a ledge unchanged (a Myconid capture on
+  ledge A was the proof). Chosen over teaching the scripted layer heights (hundreds of places) after three readers checked
+  the scene graph, the shaders and the walking code against it; their finding that kit must stay at the root and only
+  recorded world things move is how it was built (nothing is re-parented at a climb).
+- **Walking**: her own level's tiles only, 0.42 m off the rock and off the edge, never across; scripted moves keep to her
+  level; checkpoints and saves know the level.
+- **Climbing** (`climb.js`): live IK, no clip; a vine net with a cross vine every 0.34 m where her hands and feet hold;
+  the two events and scenes; Boudicca climbs after her.
+- **North Forest**: ledges A, B, C with their vines, each guarded by an Ivy Maiden; the 2D's plants up there; the two
+  Myconids back on their ledges.
+- **Forest of Lys**, now 42 x 38 with side paths and glades: the `weeds` ledge and the Glade of Lys (as a second ledge);
+  hornets in the meadow north-east of the way in and in the east woods, slimes in the marsh and on the path to the
+  Glade (creatures2.js); the shared taming scene; three Myconid patches; the three holes; aloe, berries, clover, a wild
+  blossom, five Mandragoras (items.js). STORY_SPEC.md, last section.
+- The hornets and the slimes remark on her looks in their own voices (story_common.js lookSay).
+
+## The content line (as always)
+Comedic and SFW: every character an adult and dressed; only shoes and hats come off; nothing sexual; the 2D's adult
+stages are left out; remarks name the tone of her skin, never a race. Two of the 2D's taunts that were slurs are worded
+without them ("you buzzing pest", "you noisy thing").
+
+## Left out
+- The 2D's capture stages after the first (adult).
+- The hollow log of Lys: logscene.js copies the herb count when the page loads and writes it back, which would undo
+  what was picked in Lys since; it also draws its own counter box and has camp-only lines. Needs its own pass.
+- The moth girl, the witches, the pumpkin fiends, the treant (later progress in the 2D); fairies as items; the waterfall
+  of the Glade.
+- The Glade of Lys is a ledge here, reached by a second vine, not a separate map behind a secret path.
+
+## Checked (batch 27, VER 355)
+- tools/reg.sh 26 of 26; tools/reg2.sh 29 lines (17 old, 12 new: hornet and slime tamed / lost / free, the three holes, the
+  gnome talk, a Lys Myconid, climbs up and down in both forests, a Myconid capture ON ledge A). On the last full run 28
+  of 29: the dryad's taming scene hung once (the browser stopped answering); the same line then passed 7 times in a
+  row and had passed in the two full runs before. Not explained; watch for it.
+- Walking, by numbers: 0.5 m from the rock free, 0.2 m refused, inside it pushed back out to the margin; the same at an
+  edge from above. Climbs end on the right level at y = 0 (`__stuck()` clear).
+- Three readers before building (scene graph, world-space shaders, walking and cameras: their digests shaped the
+  design), three reviewers after, each followed by a skeptic: 10 findings, all confirmed, all fixed (rocks at a ledge's
+  foot where she walks; the rock inside her keep-off margin; a texture seam; butterflies inside a ledge; Boudicca set
+  down beyond an edge; the pinned test camera; the taming scene's pictures taken from inside trees; a kick-free spot in
+  the stream; Boudicca popping into the picture after a hole or a Myconid; a hornet promising honey she does not give).
+- WebKit: the climb with Boudicca and a cliff view draw as in Chrome.
+- Cost (WebKit, 2940 x 1912, no adaptive scaling, other work running): the North Forest's ledge view 1.75M -> 1.82M
+  triangles, frame time unchanged within the noise. Lys was very light and is heavier: 125k -> 414k triangles in the
+  view at the way in (the new glades' grass, a wider forest), 13 -> 16-19 ms; a hornet or slime in the picture adds
+  about 180k with its shadow, so they are drawn only within 24 m and in the picture.
+- The sixth `//`-in-a-scripted-patch slip (a comment appended in a Python replace swallowed the rest of a line in
+  world/ledges.js): caught by tools/chk.sh before anything ran.

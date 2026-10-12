@@ -135,6 +135,8 @@ export function createStory(ctx) {
     bo: ['faces/boudicca.png', 4, 6, 'Boudicca'], li: ['faces/lilith.png', 4, 6, 'Lilith'], ly: ['faces/lyra.png', 4, 4, 'Lyra'],      // (10-02: the epilogue and the opening)
     // (10-05: Chapter 2) Camellia the apothecary, the dryad of the Forest of Lys, Vice-Captain Elora, Lieutenant Mia, the gate guard
     ca: ['faces/camellia.png', 4, 6, 'Camellia'], dr: ['faces/dryad.png', 4, 4, 'Dryad'], el: ['faces/elora.png', 4, 4, 'Elora'], mi: ['faces/mia.png', 4, 2, 'Mia'], gu: ['faces/valyndra-guards.png', 4, 2, 'Gate Guard'],
+    // (10-12: the Forest of Lys's creatures) the hornet girls and the slime girls
+    ho: ['faces/hornet.png', 4, 2, 'Hornet'], sl: ['faces/slime.png', 4, 2, 'Slime'],
   };
   const BITMAPS = {};
   // (10-04, as he asked) her name is the player's (looks.js): wherever the story says "Anne", it says that name; and once
@@ -422,10 +424,21 @@ export function createStory(ctx) {
   // ---------- Anne under the story's control ----------
   let scriptV = 0, curClip = '';
   const tileC = (tx, ty, out = V3()) => out.set((tx + 0.5) * TILE, 0, (ty + 0.5) * TILE);
+  // (10-12) raised ground (ledges climbed to by a vine; world/frames.js): null in a level without any. The ground she
+  // stands on is y = 0 on either level, so nothing here writes a height; what it must know is which LEVEL a place is on:
+  // an event is for whoever stands on its level, a blocker blocks its own level, and no script moves her across the rock
+  // face (only a climb does: LED.setLevel).
+  const LED = ctx.ledges || null;
+  const levelOfEv = (ev) => (ev.lv !== undefined ? ev.lv : LED.levelAt(ev.p.x, ev.p.z));
   const toPoint = (p, out = V3()) => (Array.isArray(p) ? tileC(p[0], p[1], out) : out.copy(p));
   function clip(name, fadeSec = 0.3) { if (name !== curClip) { curClip = name; A.playClip(name, fadeSec); } }
   function release() { curClip = ''; A.releaseClips(); }
-  function place(p, yaw) { toPoint(p, anne.position); anne.position.y = 0; if (yaw !== undefined) anne.rotation.set(0, yaw, 0); }
+  // place(p, yaw, o): she is put somewhere at once. With ledges she stays on the level she is on (a spot that falls on the
+  // other one, or against the rock face, is moved to the nearest ground of hers); o.level: she is put on that level.
+  function place(p, yaw, o) {
+    toPoint(p, anne.position); anne.position.y = 0; if (yaw !== undefined) anne.rotation.set(0, yaw, 0);
+    if (LED) { if (o && o.level !== undefined) LED.setLevel(o.level, { keepY: true, cut: true }); else LED.keepOn(anne.position); }
+  }
   async function turnTo(target, sec = 0.25) {
     const p = target.isObject3D ? target.position : toPoint(target, _e);
     const y0 = anne.rotation.y, y1 = y0 + angle(Math.atan2(p.x - anne.position.x, p.z - anne.position.z) - y0); let t = 0;
@@ -450,6 +463,7 @@ export function createStory(ctx) {
   async function hop(from, dist = 0.5, sec = 0.28) {
     const p = from.isObject3D ? from.position : toPoint(from, V3());
     const dx = anne.position.x - p.x, dz = anne.position.z - p.z, d = Math.hypot(dx, dz) || 1, x0 = anne.position.x, z0 = anne.position.z; let t = 0;
+    if (LED) dist = LED.reach(x0, z0, dx / d, dz / d, dist);      // (10-12: never over a ledge's edge, nor into its rock)
     await until((dt) => { t += dt; const k = Math.min(1, t / sec); anne.position.x = x0 + dx / d * dist * k; anne.position.z = z0 + dz / d * dist * k; anne.position.y = 0.16 * Math.sin(PI * k); return k >= 1; });
     anne.position.y = 0;
   }
@@ -496,7 +510,8 @@ export function createStory(ctx) {
   // `o.bush: true` on a shot leaves it where it was put.
   const BUSH = /[?&]bushfix=0/.test(location.search) ? [] : (ctx.bushes || []), BPAD = 0.28;       // (a bush's sprigs and blossoms stand that far out of its dome; tests: &bushfix=0 leaves every shot where it was put)
   function inBush(p, pad = BPAD) {
-    for (const b of BUSH) { const dx = p.x - b.x, dz = p.z - b.z, R = b.r + pad, q = (dx * dx + dz * dz) / (R * R); if (q >= 1) continue; const dy = (p.y - b.y) / (b.h + pad); if (q + dy * dy < 1) return true; }
+    const fh = LED ? LED.frameH() : 0;             // (10-12: the bushes are kept in the heights they were built at)
+    for (const b of BUSH) { const dx = p.x - b.x, dz = p.z - b.z, R = b.r + pad, q = (dx * dx + dz * dz) / (R * R); if (q >= 1) continue; const dy = (p.y + fh - b.y) / (b.h + pad); if (q + dy * dy < 1) return true; }
     return false;
   }
   function bushBefore(from, to, reach = 2.5) {      // on the first `reach` metres of the line, and not at its far end (what stands far off is scenery)
@@ -635,7 +650,7 @@ export function createStory(ctx) {
     if (ev.solid) block(ev.id, ev.p.x, ev.p.z, ev.solid);
     return ev;
   }
-  function block(id, x, z, r) { blockers.push({ id, x, z, r }); }
+  function block(id, x, z, r) { blockers.push({ id, x, z, r, lv: LED ? LED.levelAt(x, z) : undefined }); }      // (10-12: lv: the level it stands on, with ledges)
   function moveBlock(id, x, z) { for (const b of blockers) if (b.id === id) { b.x = x; b.z = z; } }      // (a blocker that walks about: a wandering creature)
   function unblock(id) { for (let i = blockers.length - 1; i >= 0; i--) if (blockers[i].id === id) blockers.splice(i, 1); }
   function remove(ev, forever = true) {
@@ -645,7 +660,7 @@ export function createStory(ctx) {
     if (forever && !gone().includes(id)) { gone().push(id); save(); }
   }
   const near = (ev, r = ev.r) => Math.hypot(anne.position.x - ev.p.x, anne.position.z - ev.p.z) <= r;
-  const usable = (ev) => !ev.when || ev.when();
+  const usable = (ev) => (!LED || levelOfEv(ev) === LED.level()) && (!ev.when || ev.when());      // (10-12: and on the level she stands on)
   function actionEvent() { let best = null, bd = 1e9; for (const ev of events) { if (!ev.action || !usable(ev)) continue; const d = Math.hypot(anne.position.x - ev.p.x, anne.position.z - ev.p.z); if (d <= ev.r && d < bd) { bd = d; best = ev; } } return best; }
 
   // ---------- scenes ----------
@@ -680,6 +695,10 @@ export function createStory(ctx) {
     say, choice, gauge, toast, note, fade, night, setNight, card, emote, objective,
     clip, release, place, turnTo, walk, hop, cam, tileC, toPoint, actors, events,
     anne, A, level, LV, TILE, V3, sstep, angle, pickOne,
+    // (10-12) raised ground: ledge (null without any; world/frames.js through index.html): level(), levelAt(x, z),
+    // setLevel(lv, o), settle(obj, lv), carry(obj, lv), free(obj), keepOn(p), reach(...). settle(obj): a thing the story
+    // stands somewhere AFTER the area was set up goes into the group of the ground it stands on (a no-op without ledges).
+    ledge: LED, settle: (obj, lv) => (LED ? LED.settle(obj, lv) : obj), onLevel: (p) => !LED || LED.levelAt(p.x, p.z) === LED.level(),
     get progress() { return state.progress; }, set progress(v) { state.progress = v; save(); },
     flag: (k, v) => { if (v === undefined) return !!state.flags[k]; state.flags[k] = v; save(); return v; },
     addHerbs(n) { state.herbs += n; setHud(); if (ctx.onCounts) ctx.onCounts(state.herbs, state.coins); save(); },
@@ -703,8 +722,13 @@ export function createStory(ctx) {
   let live = false, closed = false, sinceSave = 0, toeT = 0;
   const savePlace = () => { if (live && !closed && !active && state.progress > 0 && !(ctx.busy && ctx.busy())) save(true); };
   addEventListener('pagehide', savePlace);
+  // (10-12) she has changed level (world/frames.js): every point the camera keeps moves with her, or the shot would glide
+  function shiftCam(dy) {
+    for (const v of [cam.pos, cam.look, cam.gPos, cam.gLook, lastGoal.p, lastGoal.l]) v.y += dy;
+    if (cam.focus) { cam.focus = cam.focus.clone(); cam.focus.y += dy; if (active && ctx.setFocus) ctx.setFocus(cam.focus, cam.fK); }
+  }
   const api = {
-    S, ready,
+    S, ready, shiftCam,
     update(dt, t) {
       dt *= TS; now += dt;
       if (toeT > 0) { toeT -= dt; if (toeT <= 0 && A.setToeWiggle) A.setToeWiggle(0); }
@@ -743,6 +767,7 @@ export function createStory(ctx) {
     // (tests, ?ev=<event id>) stand her next to an event, facing it, and start it
     runEvent(id, walkable) {
       const ev = events.find((e) => String(e.id) === String(id)); if (!ev) return false;
+      if (LED) LED.setLevel(levelOfEv(ev), { keepY: true, cut: true });      // (10-12: on the event's own level, before a place is looked for beside it)
       if (walkable) {
         let best = null;
         for (let i = 0; i < 16; i++) {
